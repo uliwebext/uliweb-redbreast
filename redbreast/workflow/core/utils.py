@@ -2,9 +2,14 @@
 
 class Event(object):
     
-    def __init__(self, event_type, data):
+    def __init__(self, event_type, target, data=None):
         self._type = event_type
+        self._target = target
         self._data = data
+        
+    @property
+    def target(self):
+        return self._target
         
     @property
     def type(self):
@@ -17,6 +22,7 @@ class Event(object):
 class EventDispatcher(object):
     
     def __init__(self):
+        super(EventDispatcher, self).__init__()
         self._events = dict()
         
     def __del__(self):
@@ -31,15 +37,18 @@ class EventDispatcher(object):
     def dispatch_event(self, event):
         if event.type in self._events.keys():
             listeners = self._events[event.type]
-            
-        for listener in listeners:
-            listener(event)
+            for listener in listeners:
+                listener(event)
+
+    fire = dispatch_event
             
     def add_event_listener(self, event_type, listener):
         if not self.has_listener(event_type, listener):
             listeners = self._events.get(event_type, [])
             listeners.append(listener)
             self._events[event_type] = listeners
+    
+    on = add_event_listener
             
     def remove_event_listener(self, event_type, listeners):
         if self.has_listenser(event_type, listener):
