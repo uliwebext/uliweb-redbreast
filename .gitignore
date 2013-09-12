@@ -36,3 +36,7 @@ nosetests.xml
 
 # Ulipad configuration
 _project
+
+#Sublime configuration
+*.sublime-project
+*.sublime-workspace

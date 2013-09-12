@@ -59,9 +59,6 @@ class TaskSpec(AbstractTaskSpec, EventDispatcher):
         return taskspecs[-1]
     
     to = connect
-    
-    def __rshift__(self, other):
-        return self.to(other)
 
     def follow(self, taskspecs):
         if not isinstance(taskspecs, list):
@@ -70,9 +67,18 @@ class TaskSpec(AbstractTaskSpec, EventDispatcher):
             spec.connect(self)
         return taskspecs[-1]
     
+    def __rshift__(self, other):
+        return self.to(other)
+
     def __lshift__(self, other):
         return self.follow(other)
+
+    def __sub__(self, other):
+        return self.to(other)
     
+    def __neg__(self):
+        return self
+
     def test(self):
         if len(self.inputs) < 1:
             raise WorkflowException(self, 'No input task connected.')

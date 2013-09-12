@@ -32,8 +32,8 @@ def call():
     #Links
     wf_spec.start >> a
     
-    a >> b >> c >> g >> h
-    a >> d >> e >> f >> g
+    a -- b -- c -- g -- h
+    a -- d -- e -- f -- g
     
     wf_spec.dump()
 
