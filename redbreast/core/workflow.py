@@ -1,6 +1,6 @@
 import logging
 
-from redbreast.core.exception import WorkflowException
+from redbreast.core.exception import WFException
 from redbreast.core.spec import *
 from redbreast.core.utils import EventDispatcher
 from uuid import uuid4
@@ -37,10 +37,10 @@ class Workflow(EventDispatcher):
     
     def run_from_id(self, task_id):
         if task_id is None:
-            raise WorkflowException(self.spec, 'task_id is None')
+            raise WFException(self.spec, 'task_id is None')
         for task in self.task_tree:
             if task.id == task_id:
                 return task.complete()
         msg = 'A task with the given task_id (%s) was not found' % task_id
-        raise WorkflowException(self.spec, msg)
+        raise WFException(self.spec, msg)
         

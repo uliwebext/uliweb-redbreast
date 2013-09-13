@@ -1,30 +1,54 @@
 #coding=utf8
 from redbreast.core.utils import EventDispatcher, Event
+from redbreast.core import WFConst
+from manager import WFCoreManager
 from task import *
+
+class Node(object):
+    
+    def __init__(self, id, task_spec, workflow_spec):
+        self.id = id
+        self.inputs = []
+        self.outputs = []
+        self.spec = task_spec
+        self.workflow_spec = workflow_spec
+        
+    def to(self, wrapper):
+        self.outpus.append(wrapper)
+        wrapper._notify_connect(self)
+        return wrapper
+        
+    def follow(self, wrapper):
+        wrapper.to(self)
+        return wrapper
+        
+    def __sub__(self, wrapper):
+        return self.to(wrapper)
+        
+    def __neg__(self):
+        return self
+    
+    def _notify_connect(self, wrapper):
+        self.inputs.append(wrapper)
+        
 
 class AbstractWorkflowSpec(object):
     def __init__(self):
         super(AbstractWorkflowSpec, self).__init__()
 
 class WorkflowSpec(AbstractWorkflowSpec, EventDispatcher):
-    
-    #Events
-    EVENT_WF_ADDTASK = "EVENT_WF_ADDTASK"
-    
-    #Specail Tasks
-    TASK_START = "taskStart"
-    
+            
     def __init__(self, name=None):
         super(WorkflowSpec, self).__init__()
 
-        self.name = name or ''
-        self.description = ''
+        self.name = name or ""
+        self.description = ""
         self.task_specs = dict()
+        
         #veto methods
         self.on_addchild = None
-
-        self.start = StartTask(self, WorkflowSpec.TASK_START)
-        
+        start_task = WFCoreManager.get_task_spec(WFConst.TASK_START)
+        self.start = Node(WFConst.TASK_START, start_task, self)
         
     def get_taskspec(self, name):
         return self.task_specs.get(name, None)
