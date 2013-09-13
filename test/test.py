@@ -1,4 +1,4 @@
-from redbreast.workflow.core.spec import *
+from redbreast.core.spec import *
 
 def addchild(event):
     print "...add child event....."
