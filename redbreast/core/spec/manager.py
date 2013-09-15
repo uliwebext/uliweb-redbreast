@@ -1,3 +1,6 @@
+from redbreast.core.utils import singleton
+
+@singleton
 class WFManager(object):
     
     def __init__(self):
@@ -15,10 +18,11 @@ class WFManager(object):
         from redbreast.core import WFConst
         
         spec = self.task_specs.get(task_spec_name, None)
-        if not spec and task_spec_name == WFConst.TASK_START:
-            spec = StartTask()
-            self.add_task_spec(spec)
-            return spec
+        if not spec:
+            if task_spec_name == WFConst.TASK_START:
+                spec = StartTask()
+                self.add_task_spec(spec)
+                return spec
     
     def load_workflow(self, wf_spec_name):
         #TODO, load and instance a workflow_spec from configuration
@@ -33,6 +37,3 @@ class WFManager(object):
         if task_spec.name in self.task_specs:
             raise KeyError('Duplicate task spec name: ' + task_spec.name)
         self.task_specs[task_spec.name] = task_spec
-        
-WFCoreManager = WFManager()
-        

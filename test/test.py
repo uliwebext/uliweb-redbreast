@@ -1,5 +1,5 @@
 from redbreast.core.spec import *
-from redbreast.core.spec import WFCoreManager
+from redbreast.core.spec import WFManager
 
 def call():
     

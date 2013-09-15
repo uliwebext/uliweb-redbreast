@@ -1,21 +1,22 @@
 #coding=utf8
 from redbreast.core.utils import EventDispatcher, Event
 from redbreast.core import WFConst
-from manager import WFCoreManager
+from manager import WFManager
 from task import *
 
-class Node(object):
+class TaskSpecProxy(object):
     
-    def __init__(self, id, task_spec, workflow_spec):
-        self.id = id
-        self.inputs = []
-        self.outputs = []
+    def __init__(self, name, task_spec, workflow_spec):
+        self.name = name
         self.spec = task_spec
         self.workflow_spec = workflow_spec
+
+    def __getattr__(self, name):
+        return getattr(self.spec, name)
         
     def to(self, wrapper):
-        self.outpus.append(wrapper)
-        wrapper._notify_connect(self)
+        #self.outpus.append(wrapper)
+        #wrapper._notify_connect(self)
         return wrapper
         
     def follow(self, wrapper):
@@ -27,32 +28,58 @@ class Node(object):
         
     def __neg__(self):
         return self
-    
-    def _notify_connect(self, wrapper):
         self.inputs.append(wrapper)
         
-
-class AbstractWorkflowSpec(object):
-    def __init__(self):
-        super(AbstractWorkflowSpec, self).__init__()
-
-class WorkflowSpec(AbstractWorkflowSpec, EventDispatcher):
+class WorkflowSpec(EventDispatcher):
             
     def __init__(self, name=None):
         super(WorkflowSpec, self).__init__()
 
         self.name = name or ""
         self.description = ""
-        self.task_specs = dict()
+        self.task_specs = {}
+        self.task_inputs = {}
+        self.task_output = {}
         
-        #veto methods
-        self.on_addchild = None
-        start_task = WFCoreManager.get_task_spec(WFConst.TASK_START)
-        self.start = Node(WFConst.TASK_START, start_task, self)
-        
-    def get_taskspec(self, name):
+        start_task = WFManager().get_task_spec(WFConst.TASK_START)
+        self.start = TaskSpecProxy(WFConst.TASK_START, start_task, self)
+    
+    def get_task_spec(self, name):
         return self.task_specs.get(name, None)
-        
+
+    def add_task_spec(self, name, taskspec):
+        if name in self.task_specs:
+            raise KeyError('Duplicate task spec name: ' + name)
+
+        proxy = TaskSpecProxy(name, taskspec, self)
+        self.task_specs[name] = proxy
+        self.task_inputs[name] = []
+        self.task_outputs[name] = []
+
+        #pubsub
+        event = Event(WFConst.EVENT_WF_ADDTASK, 
+            self, {
+                "task_spec_name": name, 
+                "task_spec": task_spec
+            })
+        self.fire(event)
+
+    def add_flow(self, from_name, to_name):
+        if not from_name in self.task_specs:
+            raise KeyError('task spec name (%s) does not exist.' % from_name)
+
+        if not to_name in self.task_specs:
+            raise KeyError('task spec name (%s) does not exist.' % to_name)
+
+        self.task_outputs.append()
+
+
+    def get_inputs(self, name):
+        pass
+
+    def get_outputs(self, name):
+        pass
+
     def validate(self):
         return True
     
@@ -91,18 +118,3 @@ class WorkflowSpec(AbstractWorkflowSpec, EventDispatcher):
         print "Workflow: %s" % self.name
         print self.get_dump()
         print "-------------------------------------------"
-       
-    def _notify_addchild(self, task_spec):
-        if task_spec.name in self.task_specs:
-            raise KeyError('Duplicate task spec name: ' + task_spec.name)
-        
-        #veto
-        if not self.on_addchild or self.on_addchild(self, task_spec):
-            self.task_specs[task_spec.name] = task_spec
-            task_spec.id = len(self.task_specs)
-            
-            #pubsub
-            event = Event(WorkflowSpec.EVENT_WF_ADDTASK, self, {"task_spec": task_spec})
-            self.fire(event)
-            
-            
