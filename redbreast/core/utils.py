@@ -1,32 +1,10 @@
 #coding=utf8
 
-def singleton(cls, *args, **kw):  
-    instances = {}  
-    def _singleton():  
-        if cls not in instances:  
-            instances[cls] = cls(*args, **kw)  
-        return instances[cls]  
-    return _singleton  
-
-
+# EVENT -----------------------------
 class Event(object):
-    
-    def __init__(self, event_type, target, data=None):
-        self._type = event_type
-        self._target = target
-        self._data = data
-        
-    @property
-    def target(self):
-        return self._target
-        
-    @property
-    def type(self):
-        return self._type
-    
-    @property
-    def data(self):
-        return self._data
+    def __init__(self, event_type, target):
+        self.type = event_type
+        self.target = target
     
 class EventDispatcher(object):
     
@@ -40,14 +18,19 @@ class EventDispatcher(object):
     def has_listener(self, event_type, listener):
         if event_type in self._events.keys():
             return listener in self._events[event_type]
-        else:
-            return False
+        return False
         
-    def dispatch_event(self, event):
-        if event.type in self._events.keys():
+    def dispatch_event(self, event_type, **attrs):
+        if isinstance(event_type, Event):
+            e = event_type
+        else:   
+            e = Event(event_type, self)
+        if event_type in self._events.keys():
+            for k, v in attrs.iteritems():
+                setattr(e, k, v)
             listeners = self._events[event.type]
             for listener in listeners:
-                listener(event)
+                listener(e)
 
     fire = dispatch_event
             
@@ -68,4 +51,37 @@ class EventDispatcher(object):
             else:
                 listeners.remove(listener)
                 self._events[even_type] = listeners
+                
+
+# Singleton -------------------------
+class Singleton(type):  
+    def __init__(self, name, bases, dct):  
+        super(Singleton, self).__init__(name, bases, dct)  
+        self.instance = None  
+  
+    def __call__(self,*args,**kw):  
+        if self.instance is None:  
+            self.instance = super(Singleton, self).__call__(*args, **kw)  
+        return self.instance  
+                
+# Delegate --------------------------
+class DelegateMetaClass(type):  
+    def __new__(cls, name, bases, attrs):  
+        methods = attrs.pop('delegated_methods', ())   
+        for m in methods:  
+            def make_func(m):  
+                def func(self, *args, **kwargs):  
+                    return getattr(self.delegate, m)(*args, **kwargs)  
+                return func  
+  
+            attrs[m] = make_func(m)  
+        return super(DelegateMetaClass, cls).__new__(cls, name, bases, attrs)  
+  
+class Delegate(object):  
+    __metaclass__ = DelegateMetaClass  
+  
+    def __init__(self, delegate):  
+        super(Delegate, self).__init__()
+        self.delegate = delegate 
+                
 

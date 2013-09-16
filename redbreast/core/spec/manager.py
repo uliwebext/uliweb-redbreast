@@ -1,9 +1,14 @@
-from redbreast.core.utils import singleton
+from redbreast.core.utils import Singleton
 
-@singleton
 class WFManager(object):
-    
+    __metaclass__ = Singleton  
+
     def __init__(self):
+        self.wf_specs = {}
+        self.task_specs = {}
+        self.storage = None
+        
+    def reset(self):
         self.wf_specs = {}
         self.task_specs = {}
         
@@ -25,8 +30,24 @@ class WFManager(object):
                 return spec
     
     def load_workflow(self, wf_spec_name):
-        #TODO, load and instance a workflow_spec from configuration
-        pass
+        if wf_spec_name in self.wf_specs:
+            return self.wf_specs[wf_spec_name]
+        else:
+            if self.storage:
+                proc, tasks = self.storage.load_workflow(wf_spec_name)
+            
+                #instance 
+                for task in tasks:
+                    if task in self.task_specs:
+                        pass #raise Error
+                    else:
+                        task_spec = None
+                        
+                        
+                        
+                        
+                return self.wf_specs[wf_spec_name]
+            return None
     
     def add_workflow_spec(self, wf_spec):
         if wf_spec.name in self.wf_specs:
@@ -37,3 +58,8 @@ class WFManager(object):
         if task_spec.name in self.task_specs:
             raise KeyError('Duplicate task spec name: ' + task_spec.name)
         self.task_specs[task_spec.name] = task_spec
+        
+    def set_storage(self, storage):
+        self.storage = storage
+        
+CoreWFManager = WFManager()        

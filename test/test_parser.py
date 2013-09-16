@@ -1,7 +1,7 @@
 #coding=utf8
 import sys
 sys.path.insert(0, '..')
-from redbreast.core.parser import WorkflowGrammar, WorkflowVisitor
+from redbreast.core.spec.parser import WorkflowGrammar, WorkflowVisitor
 
 if __name__ == '__main__':
     text = """

@@ -1,36 +1,43 @@
 #coding=utf8
-from redbreast.core.utils import EventDispatcher, Event
+from redbreast.core.utils import EventDispatcher, Event, Delegate
 from redbreast.core import WFConst
 from manager import WFManager
 from task import *
 
-class TaskSpecProxy(object):
-    
-    def __init__(self, name, task_spec, workflow_spec):
-        self.name = name
-        self.spec = task_spec
-        self.workflow_spec = workflow_spec
-
-    def __getattr__(self, name):
-        return getattr(self.spec, name)
-        
-    def to(self, wrapper):
-        #self.outpus.append(wrapper)
-        #wrapper._notify_connect(self)
-        return wrapper
-        
-    def follow(self, wrapper):
-        wrapper.to(self)
-        return wrapper
-        
-    def __sub__(self, wrapper):
-        return self.to(wrapper)
-        
-    def __neg__(self):
-        return self
-        self.inputs.append(wrapper)
-        
 class WorkflowSpec(EventDispatcher):
+    class Proxy(Delegate):
+        delegated_methods = ('__str__', 'get_type')  
+        
+        def __init__(self, name, task_spec, workflow_spec):
+            super(WorkflowSpec.Proxy, self).__init__(task_spec)
+            self.name = name
+            self.workflow_spec = workflow_spec
+            
+        @property
+        def inputs(self):
+            return self.workflow_spec.get_inputs(self.name)
+        
+        @property
+        def outputs(self):
+            return self.workflow_spec.get_outputs(self.name)
+        
+        @property
+        def type(self):
+            return self.get_type()
+           
+        def to(self, proxy):
+            self.workflow_spec.add_flow(self.name, proxy.name)
+            return proxy
+            
+        def follow(self, proxy):
+            wrapper.to(self)
+            return wrapper
+            
+        def __sub__(self, proxy):
+            return self.to(proxy)
+            
+        def __neg__(self):
+            return self
             
     def __init__(self, name=None):
         super(WorkflowSpec, self).__init__()
@@ -39,30 +46,27 @@ class WorkflowSpec(EventDispatcher):
         self.description = ""
         self.task_specs = {}
         self.task_inputs = {}
-        self.task_output = {}
+        self.task_outputs = {}
         
         start_task = WFManager().get_task_spec(WFConst.TASK_START)
-        self.start = TaskSpecProxy(WFConst.TASK_START, start_task, self)
+        self.start = self.add_task_spec(WFConst.TASK_START, start_task)
     
     def get_task_spec(self, name):
         return self.task_specs.get(name, None)
 
-    def add_task_spec(self, name, taskspec):
+    def add_task_spec(self, name, task_spec):
+        print name
         if name in self.task_specs:
             raise KeyError('Duplicate task spec name: ' + name)
 
-        proxy = TaskSpecProxy(name, taskspec, self)
+        proxy = WorkflowSpec.Proxy(name, task_spec, self)
         self.task_specs[name] = proxy
         self.task_inputs[name] = []
         self.task_outputs[name] = []
 
         #pubsub
-        event = Event(WFConst.EVENT_WF_ADDTASK, 
-            self, {
-                "task_spec_name": name, 
-                "task_spec": task_spec
-            })
-        self.fire(event)
+        self.fire(WFConst.EVENT_WF_ADDTASK, task_spec_name=name, task_spec=task_spec)
+        return proxy
 
     def add_flow(self, from_name, to_name):
         if not from_name in self.task_specs:
@@ -71,14 +75,14 @@ class WorkflowSpec(EventDispatcher):
         if not to_name in self.task_specs:
             raise KeyError('task spec name (%s) does not exist.' % to_name)
 
-        self.task_outputs.append()
-
+        self.task_outputs[from_name].append(self.get_task_spec(to_name))
+        self.task_inputs[to_name].append(self.get_task_spec(from_name))
 
     def get_inputs(self, name):
-        pass
+        return self.task_inputs.get(name, [])
 
     def get_outputs(self, name):
-        pass
+        return self.task_outputs.get(name, [])
 
     def validate(self):
         return True
@@ -94,10 +98,10 @@ class WorkflowSpec(EventDispatcher):
     
         def recursive_dump(task_spec, indent):
             if task_spec in done:
-                return  '[shown earlier] %s (%s)' % (task_spec.name, task_spec.__class__.__name__) + '\n'
+                return  '[shown earlier] %s (%s)' % (task_spec.name, task_spec.type) + '\n'
     
             done.add(task_spec)
-            dump = '%s (%s)' % (task_spec.name, task_spec.__class__.__name__) + '\n'
+            dump = '%s (%s)' % (task_spec.name, task_spec.type) + '\n'
             if verbose:
                 if task_spec.inputs:
                     dump += indent + '-  IN: ' + ','.join(['%s' % t.name for t in task_spec.inputs]) + '\n'

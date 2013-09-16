@@ -11,6 +11,8 @@ class WFConst(object):
     EVENT_WF_CREATED   = "event_workflow_created"
     EVENT_WF_PAUSED    = "event_workflow_paused"
     EVENT_WF_FINISHED  = "event_workflow_finished"
+    
+    EVENT_WF_ADDTASK   = "event_workflow_addtask"
 
     TASK_START = "task_start"
     TASK_END   = "task_end"
