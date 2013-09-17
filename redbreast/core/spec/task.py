@@ -20,6 +20,22 @@ class TaskSpec(object):
         for key in data:
             if key in self.__supported_config_fields__:
                 setattr(self, key, data[key])
+                
+    def ready(self, task):
+        from redbreast.core import Task
+        task.state = Task.READY
+        return True
+        
+    def execute(self, task):
+        from redbreast.core import Task
+        task.state = Task.EXECUTED
+        return self.route(task)
+        
+    def route(self, task):
+        from redbreast.core import Task
+        
+        task.state = Task.COMPLETED
+        return True
 
 class StartTask(TaskSpec):
     task_type = 'StartTask'
