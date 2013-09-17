@@ -4,6 +4,7 @@ from redbreast.core.exception import WFException
 
 class TaskSpec(object):
     task_type = 'Task'
+    __supported_config_fields__ = []
     def __init__(self, name, **kwargs):
         super(TaskSpec, self).__init__()
         self.name = str(name) #unique in workflow
@@ -14,7 +15,11 @@ class TaskSpec(object):
     
     def get_type(self):
         return self.task_type or 'SimpleTask'
-        
+    
+    def update_kwarg(self, data):
+        for key in data:
+            if key in self.__supported_config_fields__:
+                setattr(self, key, data[key])
 
 class StartTask(TaskSpec):
     task_type = 'StartTask'

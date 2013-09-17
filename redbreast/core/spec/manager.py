@@ -1,4 +1,6 @@
-from redbreast.core.utils import Singleton
+from redbreast.core.utils import Singleton, CommonUtils
+from redbreast.core.exception import *
+from flow import WorkflowSpec
 
 class WFManager(object):
     __metaclass__ = Singleton  
@@ -28,6 +30,7 @@ class WFManager(object):
                 spec = StartTask()
                 self.add_task_spec(spec)
                 return spec
+        return spec
     
     def load_workflow(self, wf_spec_name):
         if wf_spec_name in self.wf_specs:
@@ -36,22 +39,44 @@ class WFManager(object):
             if self.storage:
                 proc, tasks = self.storage.load_workflow(wf_spec_name)
             
-                #instance 
-                for task in tasks:
-                    if task in self.task_specs:
+                #instance tasks
+                for task_name in tasks:
+                    if task_name in self.task_specs:
                         pass #raise Error
                     else:
-                        task_spec = None
-                        
-                        
-                        
-                        
+                        task = tasks[task_name]
+                        cls = CommonUtils.get_class(task['class'])
+                        task_spec = cls(task['name'])
+                        task_spec.update_kwarg(task)
+                        self.add_task_spec(task_spec)
+                
+                #instance workflow
+                workflow_spec = WorkflowSpec(name=proc['name'])
+                task_inputs_count = {}
+                for name in proc['tasks']:
+                    task_spec_name = proc['tasks'][name]
+                    task_spec = self.get_task_spec(task_spec_name)
+                    workflow_spec.add_task_spec(name, task_spec)
+                    task_inputs_count[name] = 0
+                    
+                for from_task, to_task in proc['flows']:
+                    workflow_spec.add_flow(from_task, to_task)
+                    task_inputs_count[to_task] = task_inputs_count[to_task] + 1
+                    
+                #find all begin_task and create flow from virtual start_task to them
+                for to_task in task_inputs_count:
+                    if task_inputs_count[to_task] == 0:
+                        workflow_spec.add_start_flow(to_task)
+                    
+                #workflow_spec.update_kwarg(proc)
+                self.wf_specs[wf_spec_name] = workflow_spec
+                
                 return self.wf_specs[wf_spec_name]
-            return None
+            raise WFException('The workflow %s is not existed.' % wf_spec_name)
     
     def add_workflow_spec(self, wf_spec):
         if wf_spec.name in self.wf_specs:
-            raise KeyError('Duplicate worlflow spec name: ' + wf_spec.name)
+            raise KeyError('Duplicate workflow spec name: ' + wf_spec.name)
         self.wf_specs[wf_spec.name] = wf_spec
         
     def add_task_spec(self, task_spec):

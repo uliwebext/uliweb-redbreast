@@ -1,9 +1,10 @@
 from redbreast.core.spec import *
+from redbreast.core.const import WFConst
 
 class TestBasic(object):
     
     def setup(self):
-        pass
+        self.__event_called = False
     
     def teardown(self):
         pass
@@ -13,18 +14,19 @@ class TestBasic(object):
         assert wf_spec != None
         
     def test_addchild_event(self):
-        self.__event_called = False
+        
         wf_spec = WorkflowSpec(name = 'TestWorkFlow')
         
         def addchild(event):
             self.__event_called = True
-            task_spec = event.data.get("task_spec")
-            assert task_spec != None
-            assert task_spec.name == "TaskA"
             
-        wf_spec.on(WorkflowSpec.EVENT_WF_ADDTASK, addchild)
+            assert hasattr(event, 'task_spec')
+            assert hasattr(event, 'task_spec_name')
+            assert event.task_spec.name == "TaskA"
+            assert event.task_spec_name == "A"
             
-        a = SimpleTask(wf_spec, "TaskA")
+        wf_spec.on(WFConst.EVENT_WF_ADDTASK, addchild)
+        wf_spec.add_task_spec('A', SimpleTask("TaskA"))
         
         assert self.__event_called == True
         
@@ -37,10 +39,10 @@ class TestBasic(object):
             return True
         
         wf_spec.on_addchild = on_addchild
-        a = SimpleTask(wf_spec, "TaskA")
-        assert wf_spec.get_taskspec('TaskA') == None
-        b = SimpleTask(wf_spec, "TaskB")
-        assert wf_spec.get_taskspec('TaskB') == b
+        wf_spec.add_task_spec('A', SimpleTask("TaskA"))
+        assert wf_spec.get_task_spec('A') == None
+        wf_spec.add_task_spec('B', SimpleTask("TaskB"))
+        assert wf_spec.get_task_spec('B').name == 'B'
         
         
         

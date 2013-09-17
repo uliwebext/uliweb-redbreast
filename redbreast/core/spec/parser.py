@@ -140,6 +140,7 @@ class WorkflowVisitor(SimpleVisitor):
             v = k.find('kwarg_value').text.strip()
             t[n] = v
              
+        t['name'] = name
         self.tasks[name] = t
         return ''
     
@@ -184,7 +185,7 @@ class WorkflowVisitor(SimpleVisitor):
         return '\n'.join(s)
     
     def visit_process(self, node):
-        p = {'tasks':{}, 'flows':{}, 'codes':{}}
+        p = {'tasks':{}, 'flows':[], 'codes':{}}
         name = node.find('process_def_name').text
         
         desc = node.find('process_def_desc')
@@ -204,8 +205,14 @@ class WorkflowVisitor(SimpleVisitor):
                 p['tasks'][_n] = _task
                 
         for t in node.find_all('process_flows_line'):
+            flow_begin = None
             for x in t.find_all('iden'):
                 _n = x.text
+                if not flow_begin:
+                    flow_begin = _n
+                else:
+                    p['flows'].append((flow_begin, _n))
+                    flow_begin = _n
                 if _n not in p['tasks']:
                     p['tasks'][_n] = _n
                     
@@ -216,7 +223,8 @@ class WorkflowVisitor(SimpleVisitor):
             _code = self._format_func_code(funcname, code)
             if _code:
                 p['codes'][fname] = _code
-            
+        
+        p['name'] = name
         self.processes[name] = p
         return ''
     

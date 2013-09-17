@@ -1,6 +1,6 @@
 #coding=utf8
 
-# EVENT -----------------------------
+# Event -----------------------------
 class Event(object):
     def __init__(self, event_type, target):
         self.type = event_type
@@ -28,7 +28,7 @@ class EventDispatcher(object):
         if event_type in self._events.keys():
             for k, v in attrs.iteritems():
                 setattr(e, k, v)
-            listeners = self._events[event.type]
+            listeners = self._events[e.type]
             for listener in listeners:
                 listener(e)
 
@@ -79,9 +79,25 @@ class DelegateMetaClass(type):
   
 class Delegate(object):  
     __metaclass__ = DelegateMetaClass  
-  
+    
     def __init__(self, delegate):  
         super(Delegate, self).__init__()
         self.delegate = delegate 
+    
+# Utils    --------------------------
+class CommonUtils(object):
+    
+    @staticmethod
+    def get_class(name):
+        from importlib import import_module
+        module, func = name.rsplit('.', 1)
+        m = import_module(module)
+        if hasattr(m, func):
+            return getattr(m, func)
+        else:
+            return None
+        
+        
+            
                 
 

@@ -1,4 +1,5 @@
 from redbreast.core.spec.parser import parse, parseFile
+from os.path import dirname, join
 
 class TestSpecParser(object):
     
@@ -35,5 +36,15 @@ class TestSpecParser(object):
         assert tasks.get('task2').get('desc') == "task2 desc"
         assert tasks.get('task3').get('desc') == "task1 desc"
         
+    def test_workflow(self):
+        config_file = join(dirname(__file__), "data/TestWorkflow.config")
+        tasks, procs = parseFile(config_file)
+        assert len(procs) == 1
         
-        
+        for name in procs:
+            print procs[name]
+            assert len(procs[name].get('tasks')) == 8
+            assert len(procs[name].get('flows')) == 8
+            shouldbe = [('A', 'B'), ('B', 'C'), ('C', 'G'), ('G', 'H'), ('A', 'D'), ('D', 'E'), ('E', 'F'), ('F', 'G')]
+            assert procs[name].get('flows') == shouldbe
+            

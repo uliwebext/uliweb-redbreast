@@ -29,7 +29,8 @@ process workflow:
     end
     
     flows:
-        A->B->tasks3
+        A->B->task3
+        A->task1->task2->task3
     end
     
     code A.ready:
@@ -53,6 +54,7 @@ end
 """
 
     def parse(text):
+        from pprint import pprint
         g = WorkflowGrammar()
         resultSoFar = []
         result, rest = g.parse(text, resultSoFar=resultSoFar, skipWS=False
@@ -62,11 +64,15 @@ end
         print result[0].render()
         #print rest
         v.visit(result, True)
-        print v.tasks
-        print v.processes
+        pprint(v.tasks)
+        pprint(v.processes)
         
         for pk, pv in v.processes.items():
+            for k, v in pv['flows'].items():
+                print "key:%s" % k
+                print "value:%s" % v
             for k, code in pv['codes'].items():
+                print '--KEY: %s---------' % k
                 print code
                 print '---------------'
 

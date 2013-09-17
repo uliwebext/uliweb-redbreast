@@ -1,10 +1,11 @@
 #coding=utf8
 from redbreast.core.utils import EventDispatcher, Event, Delegate
 from redbreast.core import WFConst
-from manager import WFManager
+
 from task import *
 
 class WorkflowSpec(EventDispatcher):
+    
     class Proxy(Delegate):
         delegated_methods = ('__str__', 'get_type')  
         
@@ -38,8 +39,12 @@ class WorkflowSpec(EventDispatcher):
             
         def __neg__(self):
             return self
+        
+    __supported_config_fields__ = []
             
     def __init__(self, name=None):
+        from manager import WFManager
+        
         super(WorkflowSpec, self).__init__()
 
         self.name = name or ""
@@ -47,26 +52,32 @@ class WorkflowSpec(EventDispatcher):
         self.task_specs = {}
         self.task_inputs = {}
         self.task_outputs = {}
+
+        #veto methods
+        self.on_addchild = None
+
         
         start_task = WFManager().get_task_spec(WFConst.TASK_START)
         self.start = self.add_task_spec(WFConst.TASK_START, start_task)
+        
     
     def get_task_spec(self, name):
         return self.task_specs.get(name, None)
 
     def add_task_spec(self, name, task_spec):
-        print name
         if name in self.task_specs:
             raise KeyError('Duplicate task spec name: ' + name)
 
-        proxy = WorkflowSpec.Proxy(name, task_spec, self)
-        self.task_specs[name] = proxy
-        self.task_inputs[name] = []
-        self.task_outputs[name] = []
+        if not self.on_addchild or self.on_addchild(self, task_spec):
+            proxy = WorkflowSpec.Proxy(name, task_spec, self)
+            self.task_specs[name] = proxy
+            self.task_inputs[name] = []
+            self.task_outputs[name] = []
 
-        #pubsub
-        self.fire(WFConst.EVENT_WF_ADDTASK, task_spec_name=name, task_spec=task_spec)
-        return proxy
+            #pubsub
+            self.fire(WFConst.EVENT_WF_ADDTASK, task_spec_name=name, task_spec=task_spec)
+            return proxy
+        return None
 
     def add_flow(self, from_name, to_name):
         if not from_name in self.task_specs:
@@ -77,6 +88,17 @@ class WorkflowSpec(EventDispatcher):
 
         self.task_outputs[from_name].append(self.get_task_spec(to_name))
         self.task_inputs[to_name].append(self.get_task_spec(from_name))
+        
+    def add_start_flow(self, to_name):
+        if not to_name in self.task_specs:
+            raise KeyError('task spec name (%s) does not exist.' % to_name)
+        self.start -- self.get_task_spec(to_name)
+        
+    def update_kwarg(self, data):
+        for key in data:
+            if key in self.__supported_config_fields__:
+                setattr(self, key, data[key])
+        
 
     def get_inputs(self, name):
         return self.task_inputs.get(name, [])
@@ -117,8 +139,8 @@ class WorkflowSpec(EventDispatcher):
     
         return dump
     
-    def dump(self):
+    def dump(self, verbose=False):
         print "-------------------------------------------"
         print "Workflow: %s" % self.name
-        print self.get_dump()
+        print self.get_dump(verbose=verbose)
         print "-------------------------------------------"

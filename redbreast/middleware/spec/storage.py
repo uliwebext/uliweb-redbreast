@@ -1,5 +1,5 @@
 from redbreast.core.spec import WFStorage
 
-class WFStorageDatabase(WFStorage):
+class WFDatabaseStorage(WFStorage):
     def __init__(self):
         pass

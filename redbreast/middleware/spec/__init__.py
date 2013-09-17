@@ -1,1 +1,1 @@
-from storage import WFStorageDatabase
+from storage import WFDatabaseStorage
