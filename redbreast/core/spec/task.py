@@ -1,6 +1,7 @@
 #coding=utf8
 from redbreast.core.utils import EventDispatcher
 from redbreast.core.exception import WFException
+from redbreast.core import WFConst
 
 class TaskSpec(object):
     task_type = 'Task'
@@ -21,20 +22,33 @@ class TaskSpec(object):
             if key in self.__supported_config_fields__:
                 setattr(self, key, data[key])
                 
-    def ready(self, task):
+    def ready(self, task, workflow):
         from redbreast.core import Task
         task.state = Task.READY
+        #pubsub
+        workflow.spec.fire(WFConst.EVENT_TASK_READY,
+            task=task, workflow=workflow)
         return True
         
-    def execute(self, task):
+    def execute(self, task, workflow):
         from redbreast.core import Task
         task.state = Task.EXECUTED
-        return self.route(task)
+        #pubsub
+        workflow.spec.fire(WFConst.EVENT_TASK_EXECUTED,
+            task=task, workflow=workflow)
+        return True
         
-    def route(self, task):
+    def transfer(self, task, workflow):
         from redbreast.core import Task
         
+        for task_spec in task.spec.outputs:
+            new_task = Task(workflow, task_spec, parent=task)
+            task.add_child(new_task)
+        
         task.state = Task.COMPLETED
+        #pubsub
+        workflow.spec.fire(WFConst.EVENT_TASK_COMPLETED,
+            task=task, workflow=workflow)
         return True
 
 class StartTask(TaskSpec):

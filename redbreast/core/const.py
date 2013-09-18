@@ -2,10 +2,10 @@
 class WFConst(object):
     
     #Task_Events
-    EVENT_TASK_ENTER    = "event_task_enter"
-    EVENT_TASK_READY    = "event_task_ready"
-    EVENT_TASK_EXECUTE  = "event_task_execute"
-    EVENT_TASK_FINISHED = "event_task_finished"
+    EVENT_TASK_ENTER     = "event_task_enter"
+    EVENT_TASK_READY     = "event_task_ready"
+    EVENT_TASK_EXECUTED  = "event_task_executed"
+    EVENT_TASK_COMPLETED = "event_task_completed"
     
     #Workflow_Events
     EVENT_WF_CREATED   = "event_workflow_created"

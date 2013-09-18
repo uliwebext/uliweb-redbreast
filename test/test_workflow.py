@@ -1,6 +1,6 @@
 from redbreast.core.spec import CoreWFManager
 from redbreast.core.spec import *
-from redbreast.core import Workflow, Task
+from redbreast.core import Workflow, Task, WFConst
 from os.path import dirname, join
 
 class TestWorkflow(object):
@@ -17,4 +17,20 @@ class TestWorkflow(object):
         
         workflow_spec = CoreWFManager.get_workflow_spec('TestWorkflow')
         workflow = Workflow(workflow_spec)
+        
+        def event_log(event):
+            print "Event ... %s " % event.type
+            print " .... spec %s" % event.task.get_name()
+        
+        workflow_spec.on(WFConst.EVENT_TASK_READY, event_log)
+        workflow_spec.on(WFConst.EVENT_TASK_EXECUTED, event_log)
+        workflow_spec.on(WFConst.EVENT_TASK_COMPLETED, event_log)
+        
+        workflow.start()
+        
+if __name__ == '__main__':
+    test = TestWorkflow()
+    test.setup()
+    test.test_workflow()
+        
         

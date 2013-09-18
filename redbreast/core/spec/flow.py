@@ -7,7 +7,7 @@ from task import *
 class WorkflowSpec(EventDispatcher):
     
     class Proxy(Delegate):
-        delegated_methods = ('__str__', 'get_type')  
+        delegated_methods = ('__str__', 'get_type', 'ready', 'execute', 'route')  
         
         def __init__(self, name, task_spec, workflow_spec):
             super(WorkflowSpec.Proxy, self).__init__(task_spec)
