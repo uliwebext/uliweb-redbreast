@@ -23,32 +23,41 @@ class TaskSpec(object):
                 setattr(self, key, data[key])
                 
     def ready(self, task, workflow):
+        if self.is_ready(task, workflow):
+            #pubsub
+            workflow.spec.fire(WFConst.EVENT_TASK_READY,
+                task=task, workflow=workflow)
+        return True
+    
+    def is_ready(self, task, workflow):
         from redbreast.core import Task
         task.state = Task.READY
-        #pubsub
-        workflow.spec.fire(WFConst.EVENT_TASK_READY,
-            task=task, workflow=workflow)
         return True
         
-    def execute(self, task, workflow):
+    def execute(self, task, workflow, transfer=False):
         from redbreast.core import Task
         task.state = Task.EXECUTED
         #pubsub
         workflow.spec.fire(WFConst.EVENT_TASK_EXECUTED,
             task=task, workflow=workflow)
+            
+        if transfer:
+            return self.transfer(task, workflow)
         return True
         
     def transfer(self, task, workflow):
         from redbreast.core import Task
         
-        for task_spec in task.spec.outputs:
-            new_task = Task(workflow, task_spec, parent=task)
-            task.add_child(new_task)
-        
         task.state = Task.COMPLETED
         #pubsub
         workflow.spec.fire(WFConst.EVENT_TASK_COMPLETED,
             task=task, workflow=workflow)
+
+        for task_spec in task.spec.outputs:
+            new_task = Task(workflow, task_spec, parent=task)
+            #Test ready for every new added child
+            task_spec.ready(new_task, workflow)
+        
         return True
 
 class StartTask(TaskSpec):

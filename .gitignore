@@ -40,3 +40,7 @@ _project
 #Sublime configuration
 *.sublime-project
 *.sublime-workspace
+
+#speical filter
+sandbox*.py
+*.*~

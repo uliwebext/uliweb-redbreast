@@ -46,21 +46,28 @@ class Task(object):
             current = self.path[-1]
             if current.children:
                 self.path.append(current.children[0])
+                 
                 if self.filter is not None and current.state & self.filter == 0:
                     return None
                 return current
             
             while True:
+                
                 old_child = self.path.pop(-1)
+                
                 if len(self.path) == 0:
                     break;
                 
                 parent = self.path[-1]
                 pos = parent.children.index(old_child)
-                if len(parent.children) > pos + 1:
+                if len(parent.children) > (pos + 1):
                     self.path.append(parent.children[pos + 1])
                     break
-                return current
+            
+            if self.filter is not None and current.state & self.filter == 0:
+                return None
+            
+            return current
     
         def next(self):
             while True:
@@ -125,8 +132,8 @@ class Task(object):
     def ready(self):
         return self.spec.ready(self, self.workflow)
     
-    def execute(self):
-        return self.spec.execute(self, self.workflow)
+    def execute(self, transfer=False):
+        return self.spec.execute(self, self.workflow, transfer=transfer)
     
     def route(self):
         return self.spec.execute(self, self.workflow)
@@ -171,21 +178,23 @@ class Workflow(EventDispatcher):
         self.state = self.RUNNING
         ret = self.task_tree.ready()
         if ret:
-            self.task_tree.execute()
+            self.task_tree.execute(transfer=True)
         
     def run(self):
         while self.run_next():
             pass
+            
         
     def run_all(self):
         self.run()
         
     def run_next(self):
         # Walk through all waiting tasks.
-        for task in Task.Iterator(self.task_tree, Task.WAITING):
+        for task in Task.Iterator(self.task_tree, Task.READY):
             #task.task_spec._update_state(task)
-            if not task._has_state(Task.WAITING):
+            if task._getstate() == Task.READY:
                 self.last_task = task
+                task.execute(transfer=True)
                 return True
         return False
     
