@@ -13,6 +13,3 @@ class WFConst(object):
     EVENT_WF_FINISHED  = "event_workflow_finished"
     
     EVENT_WF_ADDTASK   = "event_workflow_addtask"
-
-    TASK_START = "task_start"
-    TASK_END   = "task_end"

@@ -7,19 +7,28 @@ import time
 
 LOG = logging.getLogger(__name__)
 
-
 class Task(object):
-    
+
     WAITING   =  1
     READY     =  2
-    COMPLETED =  4
-   
+    EXECUTING =  4
+    EXECUTED  =  8
+    COMPLETED = 16
+    
+    # waiting --> ready()  --> ready
+    # ready --> execute() 
+    # if async ---> executing
+    #    async-callback --> executed
+    # if sync --> executed --> route() --> completed
+    # executed --> transfer() ---> completed
+
     state_names = {
         WAITING:   'WAITING',
         READY:     'READY',
+        EXECUTING: 'EXECUTING',
+        EXECUTED:  'EXECUTED',
         COMPLETED: 'COMPLETED',
     }
-
     
     class Iterator(object):
         def __init__(self, current, filter=None):
@@ -36,19 +45,28 @@ class Task(object):
             current = self.path[-1]
             if current.children:
                 self.path.append(current.children[0])
+                 
+                if self.filter is not None and current.state & self.filter == 0:
+                    return None
                 return current
             
             while True:
+                
                 old_child = self.path.pop(-1)
+                
                 if len(self.path) == 0:
                     break;
                 
                 parent = self.path[-1]
                 pos = parent.children.index(old_child)
-                if len(parent.children) > pos + 1:
+                if len(parent.children) > (pos + 1):
                     self.path.append(parent.children[pos + 1])
                     break
-                return current
+            
+            if self.filter is not None and current.state & self.filter == 0:
+                return None
+            
+            return current
     
         def next(self):
             while True:
@@ -56,33 +74,24 @@ class Task(object):
                 if next is not None:
                     return next
     
-    def __init__(object, task_spec, parent=None):
     
+    def __init__(self, workflow, task_spec, parent=None, state=WAITING):
         self.workflow = workflow
-        self.parent = parent
         self.spec = task_spec
+        self.parent = parent
         self.state_history = [state]
-        self.state = state
+        
+        self._state = state
         self.data = {}
         self.id = uuid4()
         
         self.children = []
         if parent is not None:
-            self.parent._child_added_notify(self)
-        
-        
+            self.parent.add_child(self)
+            
     def __iter__(self):
         return Task.Iterator(self)
-    
-    def __repr__(self):
-        return '<Task object (%s) in state %s at %s>' % (
-            self.spec.name,
-            self.get_state_name(),
-            hex(id(self)))
             
-    def _has_state(self, state):
-        return (self.state & state) != 0
-    
     def _getstate(self):
         return self._state
     
@@ -94,72 +103,63 @@ class Task(object):
         self.state_history.append(value)
         self.last_state_change = time.time()
         
-        LOG.debug("Moving '%s' (spec=%s) from %s to %s" % (self.get_name(),
-                    self.spec.name, old, self.get_state_name()))
-                    
+        LOG.debug("Moving '%s' from %s to %s" % 
+            (self.get_name(), old, self.get_state_name()))
+            
     def _delstate(self):
         del self._state
     
     state = property(_getstate, _setstate, _delstate, "State property.")
-    
-    def _get_depth(self):
-        depth = 0
+        
+    def get_level(self):
+        level = 0
         task = self.parent
         while task is not None:
-            depth += 1
+            level += 1
             task = task.parent
-        return depth
-            
-    def _child_added_notify(self, child):
-        assert child is not None
-        self.children.append(child)
-        
-    def _drop_children(self):
-        drop = []
-        for child in self.children:
-            if not child._is_finished():
-                drop.append(child)
-            else:
-                child._drop_children()
-        for task in drop:
-            self.children.remove(task)
+        return level
     
-    def complete(self):
-        self._set_state(self.COMPLETED)
-        return self.spec._on_complete(self)
-    
-    def set_data(self, **kwargs):
-        self.data.update(kwargs)
-    
-    def get_data(self, name=None, default=None):
-        return self.data.get(name, default)
-
-    def get_spec_data(self, name=None, default=None):
-        return self.spec.get_data(name, default)
+    def get_state_name(self):
+        return self.state_names.get(self.state, None)
     
     def get_name(self):
-        return str(self.spec.name)
-    
-    def get_description(self):
-        return str(self.task_spec.description)
-    
-    def get_state(self):
-        return self.state
+        return self.spec.name
+
+    def add_child(self, child):
+        self.children.append(child)
         
-    def get_state_name(self):
-        state_name = []
-        for state, name in self.state_names.iteritems():
-            if self._has_state(state):
-                state_name.append(name)
-        return '|'.join(state_name)
+    def is_ready(self):
+        return self.spec.is_ready(self, self.workflow)
+    
+    def do_execute(self, transfer=False):
+        return self.spec.do_execute(self, self.workflow, transfer=transfer)
+    
+    def is_descendant_of(self, parent):
+        if self.parent is None:
+            return False
+        if self.parent == parent:
+            return True
+        return self.parent.is_descendant_of(parent)
+    
+    def find(self, task_spec):
+        if self.spec == task_spec:
+            return self
+        for child in self:
+            if child.spec != task_spec:
+                continue
+            return child
+        return None
+
+    def __repr__(self):
+        return '<Task (%s) in state %s at %s>' % (
+            self.spec.name,
+            self.get_state_name(),
+            hex(id(self)))
     
     def get_dump(self, indent=0, recursive=True):
         dbg  = (' ' * indent * 2)
-        dbg += '%s:'           % self.id
-        dbg += ' Task of %s'   % self.get_name()
-        if self.spec.description:
-            dbg += ' (%s)'   % self.get_description()
-        dbg += ' State: %s'    % self.get_state_name()
+        dbg += ' %s '   % self.get_name()
+        dbg += ' (%s)'    % self.get_state_name()
         dbg += ' Children: %s' % len(self.children)
         if recursive:
             for child in self.children:

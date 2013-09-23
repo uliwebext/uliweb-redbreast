@@ -7,7 +7,8 @@ from task import *
 class WorkflowSpec(EventDispatcher):
     
     class Proxy(Delegate):
-        delegated_methods = ('__str__', 'get_type', 'ready', 'execute', 'route')  
+        delegated_methods = ('__str__', 'get_type', 'is_default', 
+                'is_ready', 'do_execute', 'do_transfer')  
         
         def __init__(self, name, task_spec, workflow_spec):
             super(WorkflowSpec.Proxy, self).__init__(task_spec)
@@ -25,6 +26,9 @@ class WorkflowSpec(EventDispatcher):
         @property
         def type(self):
             return self.get_type()
+        
+        def validate(self):
+            return self.delegate.validate(self, self.inputs, self.outputs)
            
         def to(self, proxy):
             self.workflow_spec.add_flow(self.name, proxy.name)
@@ -57,9 +61,24 @@ class WorkflowSpec(EventDispatcher):
         self.on_addchild = None
 
         
-        start_task = WFManager().get_task_spec(WFConst.TASK_START)
-        self.start = self.add_task_spec(WFConst.TASK_START, start_task)
+        #start_task = WFManager().get_task_spec(WFConst.TASK_START)
+        #self.add_task_spec(WFConst.TASK_START, start_task)
+        self.start = None
+        self.is_multiple_start = False
+        self.start_tasks = None
         
+    def set_start_task(self, name):
+        if name in self.task_specs:
+            if self.is_multiple_start:
+                self.start_tasks[name] = self.get_task_spec(name)
+            else:
+                if not self.start:
+                    self.start = self.get_task_spec(name)
+                else:
+                    self.start_tasks = {}
+                    self.start_tasks[self.start.name] = self.start
+                    self.start_tasks[name] = self.get_task_spec(name)
+                    self.is_multiple_start = True
     
     def get_task_spec(self, name):
         return self.task_specs.get(name, None)
@@ -89,16 +108,10 @@ class WorkflowSpec(EventDispatcher):
         self.task_outputs[from_name].append(self.get_task_spec(to_name))
         self.task_inputs[to_name].append(self.get_task_spec(from_name))
         
-    def add_start_flow(self, to_name):
-        if not to_name in self.task_specs:
-            raise KeyError('task spec name (%s) does not exist.' % to_name)
-        self.start -- self.get_task_spec(to_name)
-        
     def update_kwarg(self, data):
         for key in data:
             if key in self.__supported_config_fields__:
                 setattr(self, key, data[key])
-        
 
     def get_inputs(self, name):
         return self.task_inputs.get(name, [])
@@ -107,7 +120,8 @@ class WorkflowSpec(EventDispatcher):
         return self.task_outputs.get(name, [])
 
     def validate(self):
-        return True
+        for spec in self.task_specs:
+            self.task_specs[spec].validate()
     
     def serialize(self):
         pass
@@ -134,8 +148,13 @@ class WorkflowSpec(EventDispatcher):
                 dump += indent + '   --> ' + recursive_dump(t,indent+('   |   ' if i+1 < len(sub_specs) else '       '))
             return dump
     
-    
-        dump = recursive_dump(self.start, '')
+        if not self.is_multiple_start:
+            dump = recursive_dump(self.start, '')
+        else:
+            dump = '[Multiple start-task workflow]' + '\n'
+            for task in self.start_tasks:
+                dump += '' + '\n'
+                dump += recursive_dump(self.start_tasks[task], '')
     
         return dump
     
