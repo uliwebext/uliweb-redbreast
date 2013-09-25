@@ -13,3 +13,9 @@ class WFConst(object):
     EVENT_WF_FINISHED  = "event_workflow_finished"
     
     EVENT_WF_ADDTASK   = "event_workflow_addtask"
+    
+    #TaskProxy FlowType
+    FLOW_START   =  "flowStart"    #StartTask, only have output tasks
+    FLOW_END     =  "flowEnd"      #EndTask, only have input tasks
+    FLOW_NORMAL  =  "flowNormal"   #NormalTask, both have input and output tasks 
+    FLOW_SINGLE  =  "flowSingle"   #SingleTask, no inut and no output

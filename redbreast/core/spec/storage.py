@@ -28,4 +28,3 @@ class WFConfigStorage(object):
             return proc, tasks
             
         raise KeyError('worlflow spec (%s) does not exist.' % wf_spec_name)
-        

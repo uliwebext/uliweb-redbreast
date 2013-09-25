@@ -68,9 +68,8 @@ end
         pprint(v.processes)
         
         for pk, pv in v.processes.items():
-            for k, v in pv['flows'].items():
-                print "key:%s" % k
-                print "value:%s" % v
+            for fa, fb in pv['flows']:
+                print "%s-->%s" % (fa, fb)
             for k, code in pv['codes'].items():
                 print '--KEY: %s---------' % k
                 print code

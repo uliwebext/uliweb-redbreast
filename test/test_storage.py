@@ -14,16 +14,15 @@ class TestCoreSpec(object):
 
     def test_storage_config(self):
         
-        output_text = """task_start (StartTask)
-   --> A (SimpleTask)
-          --> B (SimpleTask)
-          |      --> C (SimpleTask)
-          |             --> G (SimpleTask)
-          |                    --> H (SimpleTask)
-          --> D (SimpleTask)
-                 --> E (SimpleTask)
-                        --> F (SimpleTask)
-                               --> [shown earlier] G (SimpleTask)
+        output_text = """A (StartTask)
+   --> B (SimpleTask)
+   |      --> C (SimpleTask)
+   |             --> G (JoinTask)
+   |                    --> H (EndTask)
+   --> D (SimpleTask)
+          --> E (SimpleTask)
+                 --> F (SimpleTask)
+                        --> [shown earlier] G (JoinTask)
 """
         workflow_spec = CoreWFManager.get_workflow_spec('TestWorkflow')
         workflow_spec.dump(verbose=False)

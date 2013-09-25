@@ -5,7 +5,9 @@ from redbreast.core import WFConst
 
 class TaskSpec(object):
     task_type = 'Task'
-    __supported_config_fields__ = []
+    __supported_config_fields__ = ['default']
+    __supported_codes__ = []
+    
     def __init__(self, name, **kwargs):
         super(TaskSpec, self).__init__()
         self.name = str(name) #unique in workflow
@@ -21,13 +23,24 @@ class TaskSpec(object):
     def is_default(self):
         return self.default
     
-    def update_kwarg(self, data):
+    def update_fields(self, data):
         for key in data:
             if key in self.__supported_config_fields__:
                 setattr(self, key, data[key])
+    
+    def update_codes(self, data):
+        for key in data:
+            if key in self.__supported_codes__:
+                self._code_strs[key] = data[key]
                 
     def is_ready(self, task, workflow):
-        if self.ready(task, workflow):
+        fnc_ready = task.spec.get_code('ready')
+        if fnc_ready:
+            ret = fnc_ready()
+        else:
+            ret = self.ready(task, workflow)
+        
+        if ret:
             from redbreast.core import Task
             task.state = Task.READY
             #pubsub
@@ -81,12 +94,6 @@ class TaskSpec(object):
     def transfer(self, task, workflow):
         return [task_spec.name for task_spec in task.spec.outputs]
 
-class StartTask(TaskSpec):
-    task_type = 'StartTask'
-        
-class EndTask(TaskSpec):
-    task_type = 'EndTask'
-    
 class SimpleTask(TaskSpec):
     task_type = 'SimpleTask'
     

@@ -2,7 +2,7 @@ from redbreast.core.spec import CoreWFManager, WFManager
 from redbreast.core.spec import *
 import pytest
 
-class TestCoreSpec(object):
+class TestCoreWFManager(object):
     
     def setup(self):
         CoreWFManager.reset()
@@ -10,7 +10,7 @@ class TestCoreSpec(object):
     def teardown(self):
         pass
     
-    def test_manager(self):
+    def test_manager_singleton(self):
         #singleton test
         assert isinstance(CoreWFManager, WFManager)
         assert CoreWFManager == WFManager()
@@ -22,8 +22,10 @@ class TestCoreSpec(object):
         CoreWFManager.add_workflow_spec(wf_spec)
         assert wf_spec == CoreWFManager.get_workflow_spec('TestWorkFlow')
         
-    def test_manager_add2(self):
-        #test duplicate name exception
+    def test_manager_add_duplicate_error(self):
+        """
+        Test duplicate name exception
+        """
         with pytest.raises(KeyError):
             wf_spec = WorkflowSpec(name = 'TestWorkFlow')
             CoreWFManager.add_workflow_spec(wf_spec)

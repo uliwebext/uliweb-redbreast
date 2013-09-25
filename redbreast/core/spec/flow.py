@@ -14,6 +14,16 @@ class WorkflowSpec(EventDispatcher):
             super(WorkflowSpec.Proxy, self).__init__(task_spec)
             self.name = name
             self.workflow_spec = workflow_spec
+            self.flow_type = WFConst.FLOW_SINGLE
+            
+        def is_start(self):
+            return self.flow_type == WFConst.FLOW_START
+        
+        def is_end(self):
+            return self.flow_type == WFConst.FLOW_END
+        
+        def is_single(self):
+            return self.flow_type == WFConst.FLOW_SINGLE
             
         @property
         def inputs(self):
@@ -26,6 +36,23 @@ class WorkflowSpec(EventDispatcher):
         @property
         def type(self):
             return self.get_type()
+        
+        def get_code(self, fnc_name):
+            return self.workflow_spec.get_code(self.name, fnc_name)
+        
+        def refresh_flow_type(self):
+            input_count = len(self.inputs)
+            output_count = len(self.outputs)
+            if input_count == 0 and output_count == 0:
+                self.flow_type = WFConst.FLOW_SINGLE
+            else:
+                if input_count == 0:
+                    self.flow_type = WFConst.FLOW_START
+                elif output_count == 0:
+                    self.flow_type = WFConst.FLOW_END
+                else:
+                    self.flow_type = WFConst.FLOW_NORMAL
+            return self.flow_type
         
         def validate(self):
             return self.delegate.validate(self, self.inputs, self.outputs)
@@ -57,28 +84,20 @@ class WorkflowSpec(EventDispatcher):
         self.task_inputs = {}
         self.task_outputs = {}
 
+        self._code_strs = {} #cache config code str
+        self._codes = {}     #cache executed function def
+
         #veto methods
         self.on_addchild = None
 
-        
-        #start_task = WFManager().get_task_spec(WFConst.TASK_START)
-        #self.add_task_spec(WFConst.TASK_START, start_task)
-        self.start = None
         self.is_multiple_start = False
+        self.start = None
         self.start_tasks = None
         
-    def set_start_task(self, name):
-        if name in self.task_specs:
-            if self.is_multiple_start:
-                self.start_tasks[name] = self.get_task_spec(name)
-            else:
-                if not self.start:
-                    self.start = self.get_task_spec(name)
-                else:
-                    self.start_tasks = {}
-                    self.start_tasks[self.start.name] = self.start
-                    self.start_tasks[name] = self.get_task_spec(name)
-                    self.is_multiple_start = True
+        #MYTODO
+        self.is_multiple_end = False
+        self.end = None
+        self.end_tasks = None
     
     def get_task_spec(self, name):
         return self.task_specs.get(name, None)
@@ -105,13 +124,53 @@ class WorkflowSpec(EventDispatcher):
         if not to_name in self.task_specs:
             raise KeyError('task spec name (%s) does not exist.' % to_name)
 
-        self.task_outputs[from_name].append(self.get_task_spec(to_name))
-        self.task_inputs[to_name].append(self.get_task_spec(from_name))
+        to_task = self.get_task_spec(to_name)
+        from_task = self.get_task_spec(from_name)
         
-    def update_kwarg(self, data):
+        self.task_outputs[from_name].append(to_task)
+        self.task_inputs[to_name].append(from_task)
+        
+        to_task.refresh_flow_type()
+        from_task.refresh_flow_type()
+        
+    def __set_start_task(self, name):
+        if name in self.task_specs:
+            if self.is_multiple_start:
+                self.start_tasks[name] = self.get_task_spec(name)
+            else:
+                if not self.start:
+                    self.start = self.get_task_spec(name)
+                else:
+                    self.start_tasks = {}
+                    self.start_tasks[self.start.name] = self.start
+                    self.start_tasks[name] = self.get_task_spec(name)
+                    self.is_multiple_start = True
+
+    def refresh_flow_type(self):
+        self.is_multiple_start = False
+        self.start = None
+        self.start_tasks = None
+        
+        for spec in self.task_specs:
+            task = self.task_specs[spec]
+            if task.is_start():
+                self.__set_start_task(spec)
+        
+    def update_fields(self, data):
         for key in data:
             if key in self.__supported_config_fields__:
                 setattr(self, key, data[key])
+                
+    def update_codes(self, data):
+        for key in data:
+            self._code_strs[key] = data[key]
+            scope = {}
+            exec(data[key], scope)
+            self._codes[key] = scope[key]
+            
+    def get_code(self, task_name, fnc_name):
+        key = "%s_%s_%s" % (self.name, task_name, fnc_name)
+        return self._codes.get(key, None)
 
     def get_inputs(self, name):
         return self.task_inputs.get(name, [])
@@ -137,7 +196,13 @@ class WorkflowSpec(EventDispatcher):
                 return  '[shown earlier] %s (%s)' % (task_spec.name, task_spec.type) + '\n'
     
             done.add(task_spec)
-            dump = '%s (%s)' % (task_spec.name, task_spec.type) + '\n'
+            
+            if task_spec.is_end():
+                dump = '%s (%s-End)' % (task_spec.name, task_spec.type) + '\n'
+            elif task_spec.is_start():
+                dump = '%s (%s-Start)' % (task_spec.name, task_spec.type) + '\n'
+            else:
+                dump = '%s (%s)' % (task_spec.name, task_spec.type) + '\n'
             if verbose:
                 if task_spec.inputs:
                     dump += indent + '-  IN: ' + ','.join(['%s' % t.name for t in task_spec.inputs]) + '\n'

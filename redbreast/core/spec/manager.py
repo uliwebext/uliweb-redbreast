@@ -21,8 +21,6 @@ class WFManager(object):
         return self.wf_specs.get(wf_spec_name, None)
     
     def get_task_spec(self, task_spec_name):
-        
-        from redbreast.core.spec import StartTask
         from redbreast.core import WFConst
         
         spec = self.task_specs.get(task_spec_name, None)
@@ -37,7 +35,6 @@ class WFManager(object):
 
                 #instance workflow
                 workflow_spec = WorkflowSpec(name=proc['name'])
-                task_inputs_count = {}
                 
                 for name in proc['tasks']:
                     task_spec_name = proc['tasks'][name]
@@ -48,25 +45,19 @@ class WFManager(object):
                         task = tasks[name]
                         cls = CommonUtils.get_class(task['class'])
                         task_spec = cls(task['name'])
-                        task_spec.update_kwarg(task)
+                        task_spec.update_fields(task)
                         self.add_task_spec(task_spec)
                         task_spec = self.get_task_spec(task_spec_name)
                     
                     workflow_spec.add_task_spec(name, task_spec)
-                    task_inputs_count[name] = 0
                     
                 for from_task, to_task in proc['flows']:
                     workflow_spec.add_flow(from_task, to_task)
-                    task_inputs_count[to_task] = task_inputs_count[to_task] + 1
                     
-                #find all begin_task and create flow from virtual start_task to them
-                for to_task in task_inputs_count:
-                    if task_inputs_count[to_task] == 0:
-                        task_spec = workflow_spec.get_task_spec(to_task)
-                        if task_spec.get_type() == "StartTask":
-                            workflow_spec.set_start_task(to_task)
+                workflow_spec.refresh_flow_type()
                     
-                #workflow_spec.update_kwarg(proc)
+                workflow_spec.update_fields(proc)
+                workflow_spec.update_codes(proc['codes'])
                 self.wf_specs[wf_spec_name] = workflow_spec
                 
                 return self.wf_specs[wf_spec_name]
