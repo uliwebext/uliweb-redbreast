@@ -1,6 +1,7 @@
 #coding=utf8
 from redbreast.core.utils import EventDispatcher, Event, Delegate
 from redbreast.core import WFConst
+from result import inject_const_scope
 
 from task import *
 
@@ -162,10 +163,15 @@ class WorkflowSpec(EventDispatcher):
                 setattr(self, key, data[key])
                 
     def update_codes(self, data):
+        
+        fixed_param = "(task, workflow):"
+        
         for key in data:
-            self._code_strs[key] = data[key]
+            update_str = data[key].replace("():", fixed_param, 1)
+            self._code_strs[key] = update_str
             scope = {}
-            exec(data[key], scope)
+            scope = inject_const_scope(scope)
+            exec(update_str, scope)
             self._codes[key] = scope[key]
             
     def get_code(self, task_name, fnc_name):

@@ -1,7 +1,9 @@
 #coding=utf8
 from redbreast.core.utils import EventDispatcher
 from redbreast.core.exception import WFException
-from redbreast.core import WFConst
+from redbreast.core.const import WFConst
+from result import *
+
 
 class TaskSpec(object):
     task_type = 'Task'
@@ -34,42 +36,59 @@ class TaskSpec(object):
                 self._code_strs[key] = data[key]
                 
     def is_ready(self, task, workflow):
-        fnc_ready = task.spec.get_code('ready')
-        if fnc_ready:
-            ret = fnc_ready()
-        else:
-            ret = self.ready(task, workflow)
+        fnc_ready = task.spec.get_code('ready') or self.ready
+        ret = fnc_ready(task, workflow)
         
-        if ret:
+        # YES  WAITING --> READY
+        # NO   nothing
+        if ret == YES:
             from redbreast.core import Task
             task.state = Task.READY
             #pubsub
             workflow.spec.fire(WFConst.EVENT_TASK_READY,
                 task=task, workflow=workflow)
-            return True
-        return False
+        return ret
     
     def ready(self, task, workflow):
-        return True
+        return YES
         
     def do_execute(self, task, workflow, transfer=False):
         from redbreast.core import Task
-        if self.execute(task, workflow):
+        fnc_execute = task.spec.get_code('execute') or self.execute
+        ret = fnc_execute(task, workflow)
+        
+        # DOING READY -> EXECUTING
+        # DONE  READY -> EXECUTED
+        # NO    nothing
+        
+        if ret == DOING:
+            task.state = Task.EXECUTING
+            #pubsub
+            workflow.spec.fire(WFConst.EVENT_TASK_EXECUTING,
+                task=task, workflow=workflow)
+                
+        if ret == DONE:
             task.state = Task.EXECUTED
             #pubsub
             workflow.spec.fire(WFConst.EVENT_TASK_EXECUTED,
                 task=task, workflow=workflow)
-            
             if transfer:
                 return self.do_transfer(task, workflow)
-            return True
-        return False
+                
+        return ret
     
     def execute(self, task, workflow):
         return True
         
     def do_transfer(self, task, workflow):
         from redbreast.core import Task
+        
+        fnc_transfer = task.spec.get_code('execute') or self.transfer
+        ret = fnc_transfer(task, workflow)
+        
+        # DOING READY -> EXECUTING
+        # DONE  READY -> EXECUTED
+        # NO    nothing
         
         if len(task.spec.outputs)>0:
             ret = self.transfer(task, workflow)

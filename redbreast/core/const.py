@@ -1,10 +1,10 @@
-
 class WFConst(object):
     
     #Task_Events
     EVENT_TASK_ENTER     = "event_task_enter"
     EVENT_TASK_READY     = "event_task_ready"
     EVENT_TASK_EXECUTED  = "event_task_executed"
+    EVENT_TASK_EXECUTING = "event_task_executing"
     EVENT_TASK_COMPLETED = "event_task_completed"
     
     #Workflow_Events
@@ -19,3 +19,5 @@ class WFConst(object):
     FLOW_END     =  "flowEnd"      #EndTask, only have input tasks
     FLOW_NORMAL  =  "flowNormal"   #NormalTask, both have input and output tasks 
     FLOW_SINGLE  =  "flowSingle"   #SingleTask, no inut and no output
+
+
