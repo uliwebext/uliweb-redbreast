@@ -24,11 +24,26 @@ class WFResult(object):
     
 class WFResultTask(WFResult):
     
-    def __call__(self, *args):
+    def __call__(self, msg=None, *args):
         ret = WFResultTask()
         ret.type = self.type
-        ret.list = args
-        return ret    
+        ret.list = set(args)
+        ret.msg = msg
+        return ret   
+    
+    def union(self, list):
+        ret = WFResultTask(type="TASK")
+        ret.list = set()
+        for task in list:
+            if isinstance(task, str):
+                ret.list.add(task)
+            else:
+                ret.list.union(task.list)
+        
+        return ret
+    
+    def __contains__(self, task_name):
+        return task_name in self.list
 
 YES = WFResult(type="YES")
 NO = WFResult(type="NO")

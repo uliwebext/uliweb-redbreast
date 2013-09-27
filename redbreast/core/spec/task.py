@@ -78,40 +78,43 @@ class TaskSpec(object):
         return ret
     
     def execute(self, task, workflow):
-        return True
+        return DONE
         
     def do_transfer(self, task, workflow):
         from redbreast.core import Task
         
         fnc_transfer = task.spec.get_code('execute') or self.transfer
-        ret = fnc_transfer(task, workflow)
         
-        # DOING READY -> EXECUTING
-        # DONE  READY -> EXECUTED
-        # NO    nothing
+        # TASK      EXECUTED --> COMPLETED
+        # YES       EXECUTED --> COMPLETED
+        # NO        nothing
         
         if len(task.spec.outputs)>0:
-            ret = self.transfer(task, workflow)
-            if ret:
+            ret = fnc_transfer(task, workflow)
+            if ret != NO:
+                
+                if isinstance(ret, tuple) or isinstance(ret, list):
+                    new_ret = TASK.union(ret)
+                else:
+                    new_ret = ret
+                    
                 task.state = Task.COMPLETED
                 #pubsub
                 workflow.spec.fire(WFConst.EVENT_TASK_COMPLETED,
                     task=task, workflow=workflow)
                 
                 for task_spec in task.spec.outputs:
-                    if task_spec.name in ret:
+                    if new_ret == YES or (task_spec.name in new_ret):
                         new_task = Task(workflow, task_spec, parent=task)
                         #Test ready for every new added child
                         task_spec.is_ready(new_task, workflow)
-                return True
-            return False
-                
+            return ret
         else:
             #MYTODO: finish workkflow
             return True
     
     def transfer(self, task, workflow):
-        return [task_spec.name for task_spec in task.spec.outputs]
+        return YES
 
 class SimpleTask(TaskSpec):
     task_type = 'SimpleTask'
@@ -125,12 +128,16 @@ class SplitTask(TaskSpec):
         return ret
         
     def choose(self, data, task, workflow):
-        return [task_spec.name for task_spec in task.spec.outputs]
+        return YES
     
 class JoinTask(TaskSpec):
     task_type = 'JoinTask'
     
     def ready(self, task, workflow):
+        #check no uncompleted task in all joined path
+        
+        
+        
         return False
     
 class ChoiceTask(TaskSpec):
