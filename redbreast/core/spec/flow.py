@@ -16,7 +16,6 @@ class WorkflowSpec(EventDispatcher):
             self.name = name
             self.workflow_spec = workflow_spec
             self.flow_type = WFConst.FLOW_SINGLE
-            
         def is_start(self):
             return self.flow_type == WFConst.FLOW_START
         
@@ -38,6 +37,18 @@ class WorkflowSpec(EventDispatcher):
         def type(self):
             return self.get_type()
         
+        def get_ancestors(self):
+            
+            map = {}
+            def __get_them__(proxy, map):
+                for p in proxy.inputs:
+                    if not p.name in map:
+                        map[p.name] = p
+                    __get_them__(p, map)
+                    
+            __get_them__(self, map)
+            return map
+
         def get_code(self, fnc_name):
             return self.workflow_spec.get_code(self.name, fnc_name)
         
@@ -193,6 +204,15 @@ class WorkflowSpec(EventDispatcher):
     
     def deserialize(self):
         pass
+    
+    def get_start_names(self):
+        names = []
+        if not self.is_multiple_start:
+            names.append(self.start.name)
+        else:
+            for task in self.start_tasks:
+                names.append(task)
+        return names
     
     def get_dump(self, verbose=False):
         done = set()

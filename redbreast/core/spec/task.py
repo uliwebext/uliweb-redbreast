@@ -105,12 +105,18 @@ class TaskSpec(object):
                 
                 for task_spec in task.spec.outputs:
                     if new_ret == YES or (task_spec.name in new_ret):
+                        
                         new_task = Task(workflow, task_spec, parent=task)
                         #Test ready for every new added child
                         task_spec.is_ready(new_task, workflow)
             return ret
         else:
-            #MYTODO: finish workkflow
+            task.state = Task.COMPLETED
+            #pubsub
+            workflow.spec.fire(WFConst.EVENT_TASK_COMPLETED,
+                task=task, workflow=workflow)
+            
+            #MYTODO: finish workflow
             return True
     
     def transfer(self, task, workflow):
@@ -134,11 +140,25 @@ class JoinTask(TaskSpec):
     task_type = 'JoinTask'
     
     def ready(self, task, workflow):
+        from redbreast.core import Task
+        
+        #merge tasks
+        
+        for one in workflow.task_tree:
+            if one != task and one.spec == task.spec and one.state & Task.WAITING != 0 :
+                for p in task.parents:
+                    one.add_parent(p)
+                    p.add_child(one)
+                task.kill()
+                return one.spec.is_ready(one, workflow)
+        
         #check no uncompleted task in all joined path
+        specs = task.spec.get_ancestors()
+        for one in workflow.task_tree:
+            if one.state & Task.COMPLETED == 0 and one.spec.name in specs:
+                return NO
         
-        
-        
-        return False
+        return YES
     
 class ChoiceTask(TaskSpec):
     task_type = 'ChoiceTask'

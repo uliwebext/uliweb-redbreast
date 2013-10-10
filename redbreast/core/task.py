@@ -78,7 +78,10 @@ class Task(object):
     def __init__(self, workflow, task_spec, parent=None, state=WAITING):
         self.workflow = workflow
         self.spec = task_spec
-        self.parent = parent
+        self.parents = []
+        if parent:
+            self.parents.append(parent)
+            
         self.state_history = [state]
         
         self._state = state
@@ -87,7 +90,8 @@ class Task(object):
         
         self.children = []
         if parent is not None:
-            self.parent.add_child(self)
+            for p in self.parents:
+                p.add_child(self)
             
     def __iter__(self):
         return Task.Iterator(self)
@@ -125,8 +129,19 @@ class Task(object):
     def get_name(self):
         return self.spec.name
 
+    def add_parent(self, parent):
+        self.parents.append(parent)
+            
     def add_child(self, child):
         self.children.append(child)
+
+    def remove_child(self, child):
+        self.children.remove(child)
+        
+    def kill(self):
+        for p in self.parents:
+            p.remove_child(self)
+        self.parents = []
         
     def is_ready(self):
         return self.spec.is_ready(self, self.workflow)
@@ -135,11 +150,15 @@ class Task(object):
         return self.spec.do_execute(self, self.workflow, transfer=transfer)
     
     def is_descendant_of(self, parent):
-        if self.parent is None:
+        if not self.parents:
             return False
-        if self.parent == parent:
-            return True
-        return self.parent.is_descendant_of(parent)
+        for p in self.parents:
+            if self.parent == p:
+                return True
+            
+        for p in self.parents:
+            if p.is_descendant_of(parent):
+                return True
     
     def find(self, task_spec):
         if self.spec == task_spec:
@@ -158,7 +177,7 @@ class Task(object):
     
     def get_dump(self, indent=0, recursive=True):
         dbg  = (' ' * indent * 2)
-        dbg += ' %s '   % self.get_name()
+        dbg += ' %s-%s '   % (self.get_name(), self.id)
         dbg += ' (%s)'    % self.get_state_name()
         dbg += ' Children: %s' % len(self.children)
         if recursive:
