@@ -42,6 +42,6 @@ _project
 *.sublime-workspace
 
 #speical filter
-sandbox*.py
-Sandbox*.config
+#sandbox*.py
+#Sandbox*.config
 *.*~
