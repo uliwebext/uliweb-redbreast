@@ -9,7 +9,7 @@ class WorkflowSpec(EventDispatcher):
     
     class Proxy(Delegate):
         delegated_methods = ('__str__', 'get_type', 'is_default', 
-                'is_ready', 'do_execute', 'do_transfer')  
+                'is_ready', 'do_execute', 'do_transfer', 'join_ready')  
         
         def __init__(self, name, task_spec, workflow_spec):
             super(WorkflowSpec.Proxy, self).__init__(task_spec)

@@ -6,11 +6,14 @@ from os.path import dirname, join
 class TestWorkflow(object):
     
     def setup(self):
+        
+        spec_dir = "test_project/apps/specapp/workflow_specs/"
+        
         CoreWFManager.reset()
         storage = WFConfigStorage()
         CoreWFManager.set_storage(storage)
 
-        config_file = join(dirname(__file__), "data/TestWorkflow.config")
+        config_file = join(dirname(__file__), spec_dir + "TestWorkflow.spec")
         storage.load_config_file(config_file)
 
     def test_workflow(self):

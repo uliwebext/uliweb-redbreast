@@ -13,7 +13,7 @@ def clear():
     print "Deleting Task_Spec  ..."
     TaskSpec.remove()
     
-def loadspec(apps_list):
+def loadspec(apps_list, global_options):
     from uliweb.core.SimpleFrame import get_app_dir
     from uliweb import settings
     from redbreast.core.spec import parse, parseFile
@@ -30,13 +30,31 @@ def loadspec(apps_list):
             for f in os.listdir(spec_dir):
                 if f.endswith(SPEC_SUFFIX):
                     file = os.path.join(spec_dir, f)
-                    print "Parsing file %s ...." % file
-                    tasks, processes = parseFile(file)
-                    print "  tasks, %s, %s" % (len(tasks), [t for t in tasks])
-                    print "  workflow, %s, %s" % (len(processes), [t for t in processes])
+                    print "\n* Parsing file %s ...." % file
                     
-                    all_tasks.update(tasks)
-                    all_workflows.update(processes)
+                    try:
+                        tasks, processes = parseFile(file)
+                        print tasks
+                        print processes
+                    except Exception, e:
+                        print "[ERROR] ParseError, %s" % e
+                        tasks, processes = {}, {}
+                        
+                    if global_options.verbose:
+                        print "   tasks, %s, %s" % (len(tasks), [t for t in tasks])
+                        print "   workflow, %s, %s" % (len(processes), [t for t in processes])
+                    
+                    for name in tasks:
+                        if name in all_tasks:
+                            print "[WARNING] duplicate definition of Task %s" % (name)
+                            print "    will be overwriten by lastest one in %s" % file
+                        all_tasks[name] = (tasks[name], file)
+                            
+                    for name in processes:
+                        if name in all_workflows:
+                            print "[WARNING] duplicate definition of Workflow %s" % (name)
+                            print "    will be overwriten by lastest one in %s" % file
+                        all_workflows[name] = (processes[name], file)
                     
     return all_tasks, all_workflows
                     
@@ -54,14 +72,60 @@ class ClearSpecCommand(Command):
     
 class SyncSpecCommand(Command):
     name = 'syncspec'
+    help = 'update new added workflow specs into database.'
     
     def handle(self, options, global_options, *args):
         
         apps_list = self.get_apps(global_options)
-        loadspec(apps_list)
+        self.get_application(global_options)
+        
+        tasks, workflows = loadspec(apps_list, global_options)
+        
+        print "\n"
+        
+        from uliweb.orm import get_model
+        from uliweb.utils.common import Serial
+        WorkflowSpec = get_model('workflow_spec')
+        TaskSpec = get_model('task_spec')
+        
+        for name in tasks:
+            
+            find = TaskSpec.get(TaskSpec.c.name==name)
+            task, file = tasks[name]
+            if not find:
+                spec = TaskSpec(name=name, content=Serial.dump(task), source=file)
+                spec.save()
+            else:
+                if global_options.verbose:
+                    print "[WARNING] Task Spec %s is existed, will be udated." % name
+                    
+                find.update(content=Serial.dump(task), source=file)
+                find.save()
+        
+        for name in workflows:
+            
+            find = WorkflowSpec.get(WorkflowSpec.c.name==name)
+            workflow, file = workflows[name]
+            if not find:
+                spec = WorkflowSpec(name=name, content=Serial.dump(workflow), source=file)
+                spec.save()
+            else:
+                if global_options.verbose:
+                    print "[WARNING] Workflow Spec %s is existed, will be updated." % name
+                
+                find.update(content=Serial.dump(workflow), source=file)
+                find.save()
+        
+        
         
 class ShowSpecCommand(Command):
     name = 'showspec'
+    help = 'list all workflow specs in database.'
+    option_list = (
+        make_option('-d', '--detail', dest='detail', action='store_true', default=False,
+            help='Show the detail of every specs.'),
+    )
+    has_options = True
     
     def handle(self, options, global_options, *args):
         from uliweb.orm import get_model
@@ -72,42 +136,62 @@ class ShowSpecCommand(Command):
         WorkflowSpec = get_model('workflow_spec')
         TaskSpec = get_model('task_spec')
         
-        print "TaskSpec : "
+        print "TaskSpec : %s" % (TaskSpec.all().count())
         for task in TaskSpec.all():
             print " * %s" % task.name
-            pprint.pprint(Serial.load(task.content))
+            if global_options.verbose:
+                print "   - modified_date: %s" % task.modified_date
+                print "   - source: %s" % task.source
+            if options.detail:
+                pprint.pprint(Serial.load(task.content))
         
-        print "WorkflowSpec : "
+        print "\nWorkflowSpec : %s" % (WorkflowSpec.all().count())
         for wf in WorkflowSpec.all():
             print " * %s" % wf.name
-            pprint.pprint(Serial.load(wf.content))
+            if global_options.verbose:
+                print "   - modified_date: %s" % wf.modified_date
+                print "   - source: %s" % wf.source
+            if options.detail:
+                pprint.pprint(Serial.load(wf.content))
 
 class ReloadSpecCommand(Command):
     name = 'reloadspec'
+    help = 'reparse all workflow specs from config file and store them into database.'
+    option_list = (
+        make_option('-t', '--test', dest='test', action='store_true', default=False,
+            help='Parse config file but not store them.'),
+    )
+    has_options = True
     
     def handle(self, options, global_options, *args):
         from uliweb.orm import get_model
         from uliweb.core.SimpleFrame import get_app_dir
         
-        message = """This command will delete all workflow specs, are you sure to do?"""
-        get_answer(message)
+        if not options.test:
+            message = """This command will delete all workflow specs, are you sure to do?"""
+            get_answer(message)
 
         self.get_application(global_options)
-        clear()
-        print ""
+        
+        if not options.test:
+            clear()
+            print ""
         
         apps_list = self.get_apps(global_options)
-        tasks, workflows = loadspec(apps_list)
+        tasks, workflows = loadspec(apps_list, global_options)
         
         from uliweb.orm import get_model
         from uliweb.utils.common import Serial
         WorkflowSpec = get_model('workflow_spec')
         TaskSpec = get_model('task_spec')
         
-        for name in tasks:
-            spec = TaskSpec(name=name, content=Serial.dump(tasks[name]))
-            spec.save()
+        if not options.test:
+            for name in tasks:
+                task, file = tasks[name]
+                spec = TaskSpec(name=name, content=Serial.dump(task), source=file)
+                spec.save()
             
-        for name in workflows:
-            spec = WorkflowSpec(name=name, content=Serial.dump(workflows[name]))
-            spec.save()
+            for name in workflows:
+                workflow, file = workflows[name]
+                spec = WorkflowSpec(name=name, content=Serial.dump(workflow), source=file)
+                spec.save()

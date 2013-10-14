@@ -2,30 +2,28 @@ task TaskA:
     class : redbreast.core.spec.SimpleTask
 end
 
-task TaskB(TaskA):
+task TaskB:
+    class : redbreast.core.spec.SimpleTask
 end
 
-task TaskC(TaskA):
+task TaskC(TaskB):
 end
 
-task TaskD(TaskA):
+task TaskD(TaskB):
 end
 
-task TaskE(TaskA):
+task TaskE(TaskB):
 end
 
-task TaskF(TaskA):
+task TaskF(TaskB):
+end
+
+task TaskG:
     class : redbreast.core.spec.JoinTask
 end
 
-task TaskG(TaskA):
-end
-
-task TaskH(TaskA):
-    class : redbreast.core.spec.JoinTask
-end
-
-task TaskI(TaskA):
+task TaskH:
+    class : redbreast.core.spec.SimpleTask
 end
 
 process TestWorkflow:
@@ -43,13 +41,16 @@ process TestWorkflow:
         TaskF as F
         TaskG as G
         TaskH as H
-        TaskI as I
     end
     
     flows:
-        A->B->C->D->F
-        C->E->F->H
-        B->G->H
+        A->B->C->G->H
+        A->D->E->F->G
     end
     
+    code A.ready:
+    end
+    
+    code B.ready:
+    end
 end

@@ -139,7 +139,7 @@ class SplitTask(TaskSpec):
 class JoinTask(TaskSpec):
     task_type = 'JoinTask'
     
-    def ready(self, task, workflow):
+    def join_ready(self, task, workflow):
         from redbreast.core import Task
         
         #merge tasks
@@ -159,6 +159,9 @@ class JoinTask(TaskSpec):
                 return NO
         
         return YES
+    
+    def ready(self, task, workflow):
+        return self.join_ready(task, workflow)
     
 class ChoiceTask(TaskSpec):
     task_type = 'ChoiceTask'
