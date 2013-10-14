@@ -3,19 +3,52 @@ from redbreast.core.spec import *
 from uliweb import manage, functions
 import os
 
-class TestCoreWFManager(object):
+class TestCoreWFManagerDB(object):
+    
+    def reset_database(self):
+        import shutil
+        shutil.rmtree('database.db', ignore_errors=True)
+        manage.call('uliweb syncdb')
     
     def setup(self):
-        manage.call('uliweb makeproject -f TestProject')
-        os.chdir('TestProject')
+        
+        locate_dir = os.path.dirname(__file__)
+        os.chdir(locate_dir)
+        os.chdir('test_project')
+        self.reset_database()
+        manage.call('uliweb syncspec')
         self.path = os.getcwd()
+
+        from uliweb.manage import make_simple_application
+        app = make_simple_application(apps_dir='./apps')
+        
+        from redbreast.core.spec import WFDatabaseStorage
+        
+        CoreWFManager.reset()
+        storage = WFDatabaseStorage()
+        CoreWFManager.set_storage(storage)
     
     def teardown(self):
         import shutil
-        os.chdir('..')
-        if os.path.exists('TestProject'):
-            shutil.rmtree('TestProject', ignore_errors=True)
+        shutil.rmtree('database.db', ignore_errors=True)
     
     def test_manager_in_project(self):
+        assert functions.get_model('workflow_spec')
+        assert functions.get_model('task_spec')
+
+    def test_storage_in_project(self):
+        output_text = """A (SimpleTask-Start)
+   --> B (SimpleTask)
+   |      --> C (SimpleTask)
+   |             --> G (JoinTask)
+   |                    --> H (SimpleTask-End)
+   --> D (SimpleTask)
+          --> E (SimpleTask)
+                 --> F (SimpleTask)
+                        --> [shown earlier] G (JoinTask)
+"""
+        workflow_spec = CoreWFManager.get_workflow_spec('TestWorkflow')
+        workflow_spec.dump(verbose=False)
+        assert workflow_spec.get_dump(verbose=False) == output_text
         
-        assert functions.get_model('workflowspec')
+        

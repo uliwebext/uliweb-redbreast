@@ -46,14 +46,20 @@ class Workflow(EventDispatcher):
     
     def get_state_name(self):
         return self.state_names.get(self.state, None)
+    
+    def is_multiple_start(self):
+        return self.spec.is_multiple_start
 
     def start(self, start=None):
         #multipe start tasks
         if self.spec.is_multiple_start:
             if not start :
-                raise WFException('you must choose which task to start for mulitple workflow')
+                raise WFException('You must choose which task to start for mulitple-starts workflow')
             
             start_task = self.spec.get_task_spec(start)
+            if not start_task:
+                names = ','.join(self.spec.get_start_names())
+                raise WFException('The node you picked up does not exists in [%s]' % (names))
             self.task_tree = Task(self, start_task)
         
         self.state = self.RUNNING

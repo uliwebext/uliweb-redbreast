@@ -43,7 +43,9 @@ class WFManager(object):
                     #instance used task
                     if not task_spec:
                         task = tasks[name]
-                        cls = CommonUtils.get_class(task['class'])
+                        
+                        klass = task['class']
+                        cls = CommonUtils.get_spec(task['class'])
                         task_spec = cls(task['name'])
                         task_spec.update_fields(task)
                         self.add_task_spec(task_spec)

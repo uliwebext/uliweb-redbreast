@@ -2,4 +2,4 @@ from task import *
 from flow import WorkflowSpec
 from manager import CoreWFManager, WFManager
 from parser import parse, parseFile
-from storage import WFStorage, WFConfigStorage
+from storage import WFStorage, WFConfigStorage, WFDatabaseStorage

@@ -97,6 +97,18 @@ class CommonUtils(object):
         else:
             return None
         
+    @staticmethod
+    def get_spec(name):
+        klass = name
+        if klass.find(".")==-1:
+            from redbreast.core import get_spec
+            klass = get_spec(klass)
+        
+        return CommonUtils.get_class(klass)
+            
+            
+            
+        
         
             
                 
