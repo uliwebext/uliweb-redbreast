@@ -246,7 +246,8 @@ class parser(object):
                 else:
                     return R(m.group(0), text)
             else:
-                syntaxError(pattern.pattern+' text='+repr(text))
+#                syntaxError(pattern.pattern+' text='+repr(text))
+                syntaxError()
 
         elif pattern_type is tuple:
             result = []
@@ -276,7 +277,8 @@ class parser(object):
                             except SyntaxError:
                                 break
                         if n == -2 and not(found):
-                            syntaxError(text+' function=' + repr(p))
+                            #syntaxError(text+' function=' + repr(p))
+                            syntaxError()
                     n = 1
             return R(result, text)
 
