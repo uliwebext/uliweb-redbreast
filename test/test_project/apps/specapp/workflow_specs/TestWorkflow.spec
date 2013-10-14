@@ -1,5 +1,5 @@
 task TaskA:
-    class : redbreast.core.spec.SimpleTask
+    class : simple_task
 end
 
 task TaskB:
