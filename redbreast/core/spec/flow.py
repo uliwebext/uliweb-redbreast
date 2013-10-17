@@ -1,11 +1,20 @@
 #coding=utf8
 from redbreast.core.utils import EventDispatcher, Event, Delegate
-from redbreast.core import WFConst
+from redbreast.core import WFEventException
 from result import inject_const_scope
 
 from task import *
 
-class WorkflowSpec(EventDispatcher):
+__TASK_EVENTS__ = ("enter", "ready", "executed", "executing", "completed")
+__FLOW_EVENTS__ = ("workflow:created", "workflow:paused", "workflow:finished", "workflow:addchild")
+
+#TaskProxy FlowType
+__FLOW_START__   =  "flowStart"    #StartTask, only have output tasks
+__FLOW_END__     =  "flowEnd"      #EndTask, only have input tasks
+__FLOW_NORMAL__  =  "flowNormal"   #NormalTask, both have input and output tasks 
+__FLOW_SINGLE__  =  "flowSingle"   #SingleTask, no inut and no output
+
+class WorkflowSpec(object):
     
     class Proxy(Delegate):
         delegated_methods = ('__str__', 'get_type', 'is_default', 
@@ -15,15 +24,16 @@ class WorkflowSpec(EventDispatcher):
             super(WorkflowSpec.Proxy, self).__init__(task_spec)
             self.name = name
             self.workflow_spec = workflow_spec
-            self.flow_type = WFConst.FLOW_SINGLE
+            self.flow_type = __FLOW_SINGLE__
+            
         def is_start(self):
-            return self.flow_type == WFConst.FLOW_START
+            return self.flow_type == __FLOW_START__
         
         def is_end(self):
-            return self.flow_type == WFConst.FLOW_END
+            return self.flow_type == __FLOW_END__
         
         def is_single(self):
-            return self.flow_type == WFConst.FLOW_SINGLE
+            return self.flow_type == __FLOW_SINGLE__
             
         @property
         def inputs(self):
@@ -56,14 +66,14 @@ class WorkflowSpec(EventDispatcher):
             input_count = len(self.inputs)
             output_count = len(self.outputs)
             if input_count == 0 and output_count == 0:
-                self.flow_type = WFConst.FLOW_SINGLE
+                self.flow_type = __FLOW_SINGLE__
             else:
                 if input_count == 0:
-                    self.flow_type = WFConst.FLOW_START
+                    self.flow_type = __FLOW_START__
                 elif output_count == 0:
-                    self.flow_type = WFConst.FLOW_END
+                    self.flow_type = __FLOW_END__
                 else:
-                    self.flow_type = WFConst.FLOW_NORMAL
+                    self.flow_type = __FLOW_NORMAL__
             return self.flow_type
         
         def validate(self):
@@ -110,6 +120,19 @@ class WorkflowSpec(EventDispatcher):
         self.is_multiple_end = False
         self.end = None
         self.end_tasks = None
+        
+        self.dispatcher = EventDispatcher()
+    
+    def dispatch_event(self, event_type, **attrs):
+        return self.dispatcher.fire(event_type, **attrs)
+    
+    fire = dispatch_event
+    
+    def on(self, event_type, listener):
+        if event_type in __TASK_EVENTS__ or event_type in __FLOW_EVENTS__:
+            return self.dispatcher.on(event_type, listener)
+        else:
+            raise WFEventException("ERROR, '%s' is an unsupport event." % event_type)
     
     def get_task_spec(self, name):
         return self.task_specs.get(name, None)
@@ -125,7 +148,7 @@ class WorkflowSpec(EventDispatcher):
             self.task_outputs[name] = []
 
             #pubsub
-            self.fire(WFConst.EVENT_WF_ADDTASK, task_spec_name=name, task_spec=task_spec)
+            self.fire("workflow:addchild", task_spec_name=name, task_spec=task_spec)
             return proxy
         return None
 

@@ -22,6 +22,9 @@ class TestCoreWFManagerDB(object):
         from uliweb.manage import make_simple_application
         app = make_simple_application(apps_dir='./apps')
         
+        print app
+        from uliweb import settings
+        print settings.SPECS
         from redbreast.core.spec import WFDatabaseStorage
         
         CoreWFManager.reset()

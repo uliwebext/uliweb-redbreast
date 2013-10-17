@@ -1,6 +1,6 @@
 import logging
 
-from redbreast.core.exception import WFException
+from redbreast.core import WFException
 from redbreast.core.spec import *
 from uuid import uuid4
 import time

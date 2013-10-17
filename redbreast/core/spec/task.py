@@ -1,7 +1,6 @@
 #coding=utf8
 from redbreast.core.utils import EventDispatcher
 from redbreast.core.exception import WFException
-from redbreast.core.const import WFConst
 from result import *
 
 
@@ -45,8 +44,7 @@ class TaskSpec(object):
             from redbreast.core import Task
             task.state = Task.READY
             #pubsub
-            workflow.spec.fire(WFConst.EVENT_TASK_READY,
-                task=task, workflow=workflow)
+            workflow.spec.fire("ready", task=task, workflow=workflow)
         return ret
     
     def ready(self, task, workflow):
@@ -64,14 +62,12 @@ class TaskSpec(object):
         if ret == DOING:
             task.state = Task.EXECUTING
             #pubsub
-            workflow.spec.fire(WFConst.EVENT_TASK_EXECUTING,
-                task=task, workflow=workflow)
+            workflow.spec.fire("executing", task=task, workflow=workflow)
                 
         if ret == DONE:
             task.state = Task.EXECUTED
             #pubsub
-            workflow.spec.fire(WFConst.EVENT_TASK_EXECUTED,
-                task=task, workflow=workflow)
+            workflow.spec.fire("executed", task=task, workflow=workflow)
             if transfer:
                 return self.do_transfer(task, workflow)
                 
@@ -100,8 +96,7 @@ class TaskSpec(object):
                     
                 task.state = Task.COMPLETED
                 #pubsub
-                workflow.spec.fire(WFConst.EVENT_TASK_COMPLETED,
-                    task=task, workflow=workflow)
+                workflow.spec.fire("completed", task=task, workflow=workflow)
                 
                 for task_spec in task.spec.outputs:
                     if new_ret == YES or (task_spec.name in new_ret):
@@ -113,8 +108,7 @@ class TaskSpec(object):
         else:
             task.state = Task.COMPLETED
             #pubsub
-            workflow.spec.fire(WFConst.EVENT_TASK_COMPLETED,
-                task=task, workflow=workflow)
+            workflow.spec.fire("completed", task=task, workflow=workflow)
             
             #MYTODO: finish workflow
             return True

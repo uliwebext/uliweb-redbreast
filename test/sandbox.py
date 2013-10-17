@@ -14,9 +14,9 @@ config_file = join(dirname(__file__), "data/Sandbox2.config")
 storage.load_config_file(config_file)
 
 workflow_spec = CoreWFManager.get_workflow_spec('TestWorkflow')
-#workflow_spec.on(WFConst.EVENT_TASK_READY, event_log)
-workflow_spec.on(WFConst.EVENT_TASK_EXECUTED, event_log)
-#workflow_spec.on(WFConst.EVENT_TASK_COMPLETED, event_log)
+#workflow_spec.on("ready", event_log)
+workflow_spec.on("executed", event_log)
+#workflow_spec.on("completed", event_log)
 
 print "--------Workflow Spec Dump ----------------------"
 workflow_spec.dump()

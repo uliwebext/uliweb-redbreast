@@ -25,7 +25,7 @@ class TestBasic(object):
             assert event.task_spec.name == "TaskA"
             assert event.task_spec_name == "A"
             
-        wf_spec.on(WFConst.EVENT_WF_ADDTASK, addchild)
+        wf_spec.on("workflow:addchild", addchild)
         wf_spec.add_task_spec('A', SimpleTask("TaskA"))
         
         assert self.__event_called == True
