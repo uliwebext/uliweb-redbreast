@@ -1,7 +1,19 @@
-from const import *
-from exception import WFException
-from workflow import Workflow
-from task import Task
+#-----------------------------------------------
+# Exception
+class WFException(Exception):
+    def __init__(self, error, sender=None):
+        if sender:
+            Exception.__init__(self, '%s: %s' % (sender.name, error))
+            # Points to the Task that generated the exception.
+            self.sender = sender 
+        else:
+            Exception.__init__(self, '%s' % (error))
+
+class WFEventException(WFException): pass
+class WFKeyError(WFException): pass
+
+#-----------------------------------------------
+# TaskSpecAlias
 
 __specs__ = {}
 
@@ -15,5 +27,8 @@ def register_spec(alias, spec_klass):
     __specs__[alias] = spec_klass
     
 def get_spec(alias):
-    return __specs.get(alias, '')
+    return __specs__.get(alias, '')
+    
+from workflow import Workflow
+from task import Task
     

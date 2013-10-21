@@ -1,6 +1,5 @@
 from redbreast.core.utils import Singleton, CommonUtils
 from redbreast.core.exception import *
-from redbreast.core import WFConst
 from flow import WorkflowSpec
 
 class WFManager(object):
@@ -21,8 +20,6 @@ class WFManager(object):
         return self.wf_specs.get(wf_spec_name, None)
     
     def get_task_spec(self, task_spec_name):
-        from redbreast.core import WFConst
-        
         spec = self.task_specs.get(task_spec_name, None)
         return spec
     
