@@ -3,7 +3,7 @@ task TaskA:
 end
 
 task TaskB:
-    class : redbreast.core.spec.SimpleTask
+    class : simple_task
 end
 
 task TaskC(TaskB):
@@ -19,11 +19,11 @@ task TaskF(TaskB):
 end
 
 task TaskG:
-    class : redbreast.core.spec.JoinTask
+    class : join_task
 end
 
 task TaskH:
-    class : redbreast.core.spec.SimpleTask
+    class : simple_task
 end
 
 process TestWorkflow:

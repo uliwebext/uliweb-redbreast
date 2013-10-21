@@ -3,7 +3,6 @@ from redbreast.core.utils import EventDispatcher
 from redbreast.core.exception import WFException
 from result import *
 
-
 class TaskSpec(object):
     task_type = 'Task'
     __supported_config_fields__ = ['default']
@@ -15,8 +14,16 @@ class TaskSpec(object):
         self.desc = kwargs.get('desc', '')
         self.default = kwargs.get('default', False)
         
+        self._plugins = kwargs.get('plugins', [])
+        
     def __str__(self):
         return "%s (%s)" % (self.name, self.__class__.__name__)
+    
+    def register_plugin(self, plugin):
+        self._plugins.append(plugin)
+        
+    def unregister_plugin(self, plugin):
+        self._plugins.remove(plugin)
     
     def get_type(self):
         return self.task_type or 'SimpleTask'
@@ -45,6 +52,10 @@ class TaskSpec(object):
             task.state = Task.READY
             #pubsub
             workflow.spec.fire("ready", task=task, workflow=workflow)
+            
+            #plugin
+            for plugin in self._plugins:
+                plugin.state_updated("ready", task=task, workflow=workflow)
         return ret
     
     def ready(self, task, workflow):
@@ -63,11 +74,18 @@ class TaskSpec(object):
             task.state = Task.EXECUTING
             #pubsub
             workflow.spec.fire("executing", task=task, workflow=workflow)
+            #plugin
+            for plugin in self._plugins:
+                plugin.state_updated("executing", task=task, workflow=workflow)
+            
                 
         if ret == DONE:
             task.state = Task.EXECUTED
             #pubsub
             workflow.spec.fire("executed", task=task, workflow=workflow)
+            #plugin
+            for plugin in self._plugins:
+                plugin.state_updated("executed", task=task, workflow=workflow)
             if transfer:
                 return self.do_transfer(task, workflow)
                 
@@ -97,11 +115,14 @@ class TaskSpec(object):
                 task.state = Task.COMPLETED
                 #pubsub
                 workflow.spec.fire("completed", task=task, workflow=workflow)
+                #plugin
+                for plugin in self._plugins:
+                    plugin.state_updated("completed", task=task, workflow=workflow)
                 
                 for task_spec in task.spec.outputs:
                     if new_ret == YES or (task_spec.name in new_ret):
                         
-                        new_task = Task(workflow, task_spec, parent=task)
+                        new_task = workflow.Task(workflow, task_spec, parent=task)
                         #Test ready for every new added child
                         task_spec.is_ready(new_task, workflow)
             return ret
@@ -109,8 +130,12 @@ class TaskSpec(object):
             task.state = Task.COMPLETED
             #pubsub
             workflow.spec.fire("completed", task=task, workflow=workflow)
+            #plugin
+            for plugin in self._plugins:
+                plugin.state_updated("completed", task=task, workflow=workflow)
             
-            #MYTODO: finish workflow
+            #pubsub
+            workflow.spec.fire("workflow:finished", workflow=workflow)
             return True
     
     def transfer(self, task, workflow):
@@ -190,6 +215,9 @@ class MultiChoiceTask(TaskSpec):
             return defalut_tasks
         return []
     
+class TaskSpecPlugin(object):
+    def state_updated(self, state, task=None, workflow=None):
+        pass
     
     
     

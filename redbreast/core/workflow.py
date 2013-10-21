@@ -5,6 +5,7 @@ from redbreast.core.spec import *
 from redbreast.core.utils import EventDispatcher
 from uuid import uuid4
 from task import Task
+
 import time
 
 LOG = logging.getLogger(__name__)
@@ -22,21 +23,28 @@ class Workflow(EventDispatcher):
     }
     
     def __init__(self, workflow_spec, **kwargs):
+        
         LOG.debug("__init__ Workflow instance %s" % str(self))
         
+        super(Workflow, self).__init__()
+        
         self.spec = workflow_spec
+        self.Task = kwargs.get('task_klass', Task)
         self.data = {}
         self.parent_workflow = kwargs.get('parent', self)
         
         
         if not self.spec.is_multiple_start:
-            self.task_tree = Task(self, self.spec.start)
+            self.task_tree = self.Task(self, self.spec.start)
         else:
             self.task_tree = None
         
         self.last_task = None
         
         self.state = self.CREATED
+        
+        #pubsub
+        self.spec.fire("workflow:created", workflow=self)
         
     def get_alldata(self):
         return self.data
@@ -60,9 +68,11 @@ class Workflow(EventDispatcher):
             if not start_task:
                 names = ','.join(self.spec.get_start_names())
                 raise WFException('The node you picked up does not exists in [%s]' % (names))
-            self.task_tree = Task(self, start_task)
+            self.task_tree = self.Task(self, start_task)
         
         self.state = self.RUNNING
+        #pubsub
+        self.spec.fire("workflow:running", workflow=self)
         self.task_tree.is_ready()
         
     def run(self):

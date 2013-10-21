@@ -6,7 +6,7 @@ from result import inject_const_scope
 from task import *
 
 __TASK_EVENTS__ = ("enter", "ready", "executed", "executing", "completed")
-__FLOW_EVENTS__ = ("workflow:created", "workflow:paused", "workflow:finished", "workflow:addchild")
+__FLOW_EVENTS__ = ("workflow:created", "workflow:running", "workflow:paused", "workflow:finished", "workflow:addchild")
 
 #TaskProxy FlowType
 __FLOW_START__   =  "flowStart"    #StartTask, only have output tasks
