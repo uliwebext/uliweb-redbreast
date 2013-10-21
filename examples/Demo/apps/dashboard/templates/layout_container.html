@@ -1,0 +1,14 @@
+{{extend "layout_container.html"}}
+
+{{block nav}}
+    {{block menu}}
+    {{navigation('home')}}
+    {{end}}
+{{end}}
+
+{{block before_header}}
+{{super}}
+{{include "inc_menu.html"}}
+{{use "bootheme"}}
+{{end}}
+

@@ -1,0 +1,24 @@
+{{extend "layout.html"}}
+
+{{block content}}
+{{include "bootstrap/inc_full_fluid.html"}}
+{{end}}
+
+{{block content_main}}
+<div class="container-fluid" ng-app="ForumAdminApp" id="ng-app" ng-controller="adminCtrl">
+    <div class="row-fluid">
+        <div class="content-outter">
+            <div class="row">
+                <div class="span2">
+                    {{menu('main', 'request/request_all')}}
+                </div>
+                <div class="span10">
+                    <div class="toolbar">
+                        <a href="#" class="btn btn-primary">创建评审单</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
