@@ -34,17 +34,14 @@ class Workflow(EventDispatcher):
         self.parent_workflow = kwargs.get('parent', self)
         
         
-        if not self.spec.is_multiple_start:
-            self.task_tree = self.Task(self, self.spec.start)
-        else:
-            self.task_tree = None
-        
+        self.task_tree = None
         self.last_task = None
         
         self.state = self.CREATED
         
         #pubsub
         self.spec.fire("workflow:created", workflow=self)
+        self.fire("workflow:state_changed", workflow=self)
         
     def get_alldata(self):
         return self.data
@@ -69,10 +66,13 @@ class Workflow(EventDispatcher):
                 names = ','.join(self.spec.get_start_names())
                 raise WFException('The node you picked up does not exists in [%s]' % (names))
             self.task_tree = self.Task(self, start_task)
-        
+        else:
+            self.task_tree = self.Task(self, self.spec.start)
+            
         self.state = self.RUNNING
         #pubsub
         self.spec.fire("workflow:running", workflow=self)
+        self.fire("workflow:state_changed", workflow=self)
         self.task_tree.is_ready()
         
     def run(self):
@@ -86,6 +86,7 @@ class Workflow(EventDispatcher):
         # Walk through all waiting tasks.
         for task in Task.Iterator(self.task_tree, Task.READY):
             #task.task_spec._update_state(task)
+            print "xxxxxxxxxxxxxxxxxxxxxx", task
             if task._getstate() == Task.READY:
                 self.last_task = task
                 task.do_execute(transfer=True)
@@ -100,4 +101,10 @@ class Workflow(EventDispatcher):
                 return task.complete()
         msg = 'A task with the given task_id (%s) was not found' % task_id
         raise WFException(self.spec, msg)
+    
+    def finish(self):
+        #pubsub
+        self.spec.fire("workflow:finished", workflow=self)
+        self.fire("workflow:state_changed", workflow=self)
+        
         

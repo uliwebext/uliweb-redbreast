@@ -47,6 +47,9 @@ class WorkflowSpec(object):
         def type(self):
             return self.get_type()
         
+        def get_spec_name(self):
+            return self.delegate.name
+        
         def get_ancestors(self):
             
             map = {}

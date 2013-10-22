@@ -50,8 +50,6 @@ class TaskSpec(object):
         if ret == YES:
             from redbreast.core import Task
             task.state = Task.READY
-            #pubsub
-            workflow.spec.fire("ready", task=task, workflow=workflow)
             
             #plugin
             for plugin in self._plugins:
@@ -72,8 +70,6 @@ class TaskSpec(object):
         
         if ret == DOING:
             task.state = Task.EXECUTING
-            #pubsub
-            workflow.spec.fire("executing", task=task, workflow=workflow)
             #plugin
             for plugin in self._plugins:
                 plugin.state_updated("executing", task=task, workflow=workflow)
@@ -81,8 +77,6 @@ class TaskSpec(object):
                 
         if ret == DONE:
             task.state = Task.EXECUTED
-            #pubsub
-            workflow.spec.fire("executed", task=task, workflow=workflow)
             #plugin
             for plugin in self._plugins:
                 plugin.state_updated("executed", task=task, workflow=workflow)
@@ -113,8 +107,6 @@ class TaskSpec(object):
                     new_ret = ret
                     
                 task.state = Task.COMPLETED
-                #pubsub
-                workflow.spec.fire("completed", task=task, workflow=workflow)
                 #plugin
                 for plugin in self._plugins:
                     plugin.state_updated("completed", task=task, workflow=workflow)
@@ -123,19 +115,17 @@ class TaskSpec(object):
                     if new_ret == YES or (task_spec.name in new_ret):
                         
                         new_task = workflow.Task(workflow, task_spec, parent=task)
+                        #new_task.add_parent(task)
                         #Test ready for every new added child
                         task_spec.is_ready(new_task, workflow)
             return ret
         else:
             task.state = Task.COMPLETED
-            #pubsub
-            workflow.spec.fire("completed", task=task, workflow=workflow)
             #plugin
             for plugin in self._plugins:
                 plugin.state_updated("completed", task=task, workflow=workflow)
             
-            #pubsub
-            workflow.spec.fire("workflow:finished", workflow=workflow)
+            workflow.finish()
             return True
     
     def transfer(self, task, workflow):
@@ -169,7 +159,8 @@ class JoinTask(TaskSpec):
                     one.add_parent(p)
                     p.add_child(one)
                 task.kill()
-                return one.spec.is_ready(one, workflow)
+                one.spec.is_ready(one, workflow)
+                return NO
         
         #check no uncompleted task in all joined path
         specs = task.spec.get_ancestors()

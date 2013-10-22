@@ -30,6 +30,14 @@ class Task(object):
         COMPLETED: 'COMPLETED',
     }
     
+    state_fire_event_names = {
+        WAITING:   'enter',
+        READY:     'ready',
+        EXECUTING: 'executing',
+        EXECUTED:  'executed',
+        COMPLETED: 'completed',
+    }
+    
     class Iterator(object):
         def __init__(self, current, filter=None):
             self.filter = filter
@@ -82,9 +90,10 @@ class Task(object):
         if parent:
             self.parents.append(parent)
             
-        self.state_history = [state]
+        self._state = None
+        self.state_history = []
+        self.state = state
         
-        self._state = state
         self.data = {}
         self.id = uuid4()
         
@@ -107,6 +116,16 @@ class Task(object):
         self.state_history.append(value)
         self.last_state_change = time.time()
         
+        map = {}
+        
+        #pubsub
+        event_type = self.state_fire_event_names.get(self.state, None)
+        
+        if event_type:
+            self.workflow.spec.fire(event_type, task=self, workflow=self.workflow)
+            self.workflow.fire(event_type, task=self, workflow=self.workflow)
+            self.workflow.fire("state_changed", task=self, workflow=self.workflow)
+        
         LOG.debug("Moving '%s' from %s to %s" % 
             (self.get_name(), old, self.get_state_name()))
             
@@ -128,13 +147,20 @@ class Task(object):
     
     def get_name(self):
         return self.spec.name
+    
+    def get_spec_name(self):
+        return self.spec.get_spec_name()
 
     def add_parent(self, parent):
         self.parents.append(parent)
             
     def add_child(self, child):
         self.children.append(child)
+        self.workflow.fire("trans:add", from_task=self, to_task=child, workflow=self.workflow,)
 
+    def remove_parent(self, parent):
+        self.parents.remove(parent)
+        
     def remove_child(self, child):
         self.children.remove(child)
         
@@ -177,7 +203,7 @@ class Task(object):
     
     def get_dump(self, indent=0, recursive=True):
         dbg  = (' ' * indent * 2)
-        dbg += ' %s-%s '   % (self.get_name(), self.id)
+        dbg += ' %s '   % (self.get_name())
         dbg += ' (%s)'    % self.get_state_name()
         dbg += ' Children: %s' % len(self.children)
         if recursive:
