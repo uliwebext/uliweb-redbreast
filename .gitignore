@@ -44,4 +44,5 @@ _project
 #speical filter
 #sandbox*.py
 #Sandbox*.config
+database.db
 *.*~

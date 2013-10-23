@@ -26,7 +26,7 @@ class Workflow_Task(Model):
     """
     工作流活动实例表
     """
-    workflow = Reference('workflow', verbose_name='所属工作流')
+    workflow = Reference('workflow', verbose_name='所属工作流', collection_name="tasks")
     spec_name = Field(CHAR, verbose_name='活动定义名称', max_length=255)
     alias_name = Field(CHAR, verbose_name='活动名称', max_length=255)
     state = Field(int, verbose_name='活动状态', default=1, choices=get_var('PARA/WF_STATUS'))

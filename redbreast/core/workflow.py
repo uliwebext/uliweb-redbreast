@@ -40,7 +40,8 @@ class Workflow(EventDispatcher):
         self.state = self.CREATED
         
         #pubsub
-        self.spec.fire("workflow:created", workflow=self)
+        if self.spec :  
+            self.spec.fire("workflow:created", workflow=self)
         self.fire("workflow:state_changed", workflow=self)
         
     def get_alldata(self):
@@ -106,5 +107,11 @@ class Workflow(EventDispatcher):
         #pubsub
         self.spec.fire("workflow:finished", workflow=self)
         self.fire("workflow:state_changed", workflow=self)
+        
+    def serialize(self):
+        pass
+    
+    def deserialize(self, object):
+        pass
         
         

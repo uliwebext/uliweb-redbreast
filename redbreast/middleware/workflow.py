@@ -84,35 +84,55 @@ class TaskDB(Task):
 
 class WorkflowDB(Workflow):
     
+    @staticmethod
+    def load(workflow_id):
+        from uliweb.orm import get_model
+        from redbreast.core.spec import CoreWFManager
+        WF = get_model('workflow')
+        obj = WF.get(WF.c.id == workflow_id)
+        if obj:
+            workflow_spec = CoreWFManager.get_workflow_spec(obj.spec_name)
+            instance = WorkflowDB(workflow_spec, deserializing=True)
+            instance.deserialize(obj)
+            
+            instance.deserializing = False
+        return None
+    
     def __init__(self, workflow_spec, **kwargs):
         super(WorkflowDB, self).__init__(workflow_spec, task_klass=TaskDB, **kwargs)
+        
+        self.deserializing = kwargs.get('deserializing', False)
         self.obj = None
         
-        def task_save(event):   
-            task = event.task
-            task.serialize()
+        def task_save(event):
+            if not event.target.deserializing:
+                task = event.task
+                task.serialize()
             
         def trans_add(event):
-            from_task = event.from_task
-            to_task = event.to_task
-            workflow = event.workflow
-            trans = TaskTrans(from_task, to_task, workflow)
-            trans.serialize()
+            if not event.target.deserializing:
+                from_task = event.from_task
+                to_task = event.to_task
+                workflow = event.workflow
+                trans = TaskTrans(from_task, to_task, workflow)
+                trans.serialize()
             
         def trans_remove(event):
-            from_task = event.from_task
-            to_task = event.to_task
-            workflow = event.workflow
-            trans = TaskTrans(from_task, to_task, workflow)
-            trans.kill()
+            if not event.target.deserializing:
+                from_task = event.from_task
+                to_task = event.to_task
+                workflow = event.workflow
+                trans = TaskTrans(from_task, to_task, workflow)
+                trans.kill()
 
         self.on("state_changed", task_save)
         self.on("trans:add", trans_add)
         self.on("trans:remove", trans_remove)
         
         def workflow_save(event):
-            wf = event.workflow
-            wf.serialize()
+            if not event.target.deserializing:
+                wf = event.workflow
+                wf.serialize()
             
         self.on("workflow:state_changed", workflow_save)
         self.serialize()
@@ -135,5 +155,14 @@ class WorkflowDB(Workflow):
         else:
             self.obj = WF(**data)
         self.obj.save()
+        
+    def deserialize(self, obj):
+        self.obj = obj
+        if obj:
+            self.state = obj.state
+            workflow_spec = CoreWFManager.get_workflow_spec(obj.spec_name)
+            self.spec = workflow_spec
+            
+            
         
 
