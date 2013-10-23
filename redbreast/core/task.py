@@ -163,6 +163,7 @@ class Task(object):
         
     def remove_child(self, child):
         self.children.remove(child)
+        self.workflow.fire("trans:remove", from_task=self, to_task=child, workflow=self.workflow,)
         
     def kill(self):
         for p in self.parents:

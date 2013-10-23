@@ -86,7 +86,6 @@ class Workflow(EventDispatcher):
         # Walk through all waiting tasks.
         for task in Task.Iterator(self.task_tree, Task.READY):
             #task.task_spec._update_state(task)
-            print "xxxxxxxxxxxxxxxxxxxxxx", task
             if task._getstate() == Task.READY:
                 self.last_task = task
                 task.do_execute(transfer=True)
@@ -103,6 +102,7 @@ class Workflow(EventDispatcher):
         raise WFException(self.spec, msg)
     
     def finish(self):
+        self.state = self.FINISHED
         #pubsub
         self.spec.fire("workflow:finished", workflow=self)
         self.fire("workflow:state_changed", workflow=self)

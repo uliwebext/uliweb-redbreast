@@ -41,14 +41,11 @@ class TaskTrans(object):
         obj = self.get_serialize_obj()
         if obj:
             obj.delete()
-            
         
     def get_id(self):
         if self.obj:
             return self.obj.id
         return None
-        
-        
 
 class TaskDB(Task):
     
@@ -84,9 +81,6 @@ class TaskDB(Task):
             else:
                 self.obj = WFTask(**data)
             self.obj.save()
-        
-        
-            
 
 class WorkflowDB(Workflow):
     
