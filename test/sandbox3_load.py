@@ -27,17 +27,14 @@ workflow_spec.on("completed", event_log)
 print "--------Workflow Spec Dump ----------------------"
 workflow_spec.dump()
 
-workflow = Workflow(workflow_spec)
-print "---------START-------------------"
-workflow.start()
-workflow.run_next()
-workflow.run_next()
-workflow.run_next()
-workflow.run_next()
-workflow.run_next()
 
 print "---------RUN-------------------"
-workflow.task_tree.dump()
 
-workflow_id = workflow.get_id()
+workflow_id = 3
 print "............", workflow_id
+workflow = Workflow.load(workflow_id)
+workflow.task_tree.dump()
+workflow.run()
+
+
+        

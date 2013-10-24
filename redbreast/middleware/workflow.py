@@ -2,6 +2,16 @@ from redbreast.core import Workflow, Task
 
 class TaskTrans(object):
     
+    @staticmethod
+    def save(from_task, to_task, workflow):
+        trans_obj = TaskTrans(from_task, to_task, workflow)
+        trans_obj.serialize()
+        
+    @staticmethod
+    def remove(from_task, to_task, workflow):
+        trans_obj = TaskTrans(from_task, to_task, workflow)
+        trans_obj.kill()
+    
     def __init__(self, from_task, to_task, workflow):
         self.from_task = from_task
         self.to_task = to_task
@@ -81,6 +91,13 @@ class TaskDB(Task):
             else:
                 self.obj = WFTask(**data)
             self.obj.save()
+            
+    def deserialize(self, obj):
+        #state
+        self.obj = obj
+        if self.obj:
+            self._state = obj.state
+            self.state_history = [obj.state]
 
 class WorkflowDB(Workflow):
     
@@ -94,8 +111,8 @@ class WorkflowDB(Workflow):
             workflow_spec = CoreWFManager.get_workflow_spec(obj.spec_name)
             instance = WorkflowDB(workflow_spec, deserializing=True)
             instance.deserialize(obj)
-            
             instance.deserializing = False
+            return instance
         return None
     
     def __init__(self, workflow_spec, **kwargs):
@@ -111,20 +128,12 @@ class WorkflowDB(Workflow):
             
         def trans_add(event):
             if not event.target.deserializing:
-                from_task = event.from_task
-                to_task = event.to_task
-                workflow = event.workflow
-                trans = TaskTrans(from_task, to_task, workflow)
-                trans.serialize()
+                TaskTrans.save(event.from_task, event.to_task, event.workflow)
             
         def trans_remove(event):
             if not event.target.deserializing:
-                from_task = event.from_task
-                to_task = event.to_task
-                workflow = event.workflow
-                trans = TaskTrans(from_task, to_task, workflow)
-                trans.kill()
-
+                TaskTrans.remove(event.from_task, event.to_task, event.workflow)
+        
         self.on("state_changed", task_save)
         self.on("trans:add", trans_add)
         self.on("trans:remove", trans_remove)
@@ -135,7 +144,8 @@ class WorkflowDB(Workflow):
                 wf.serialize()
             
         self.on("workflow:state_changed", workflow_save)
-        self.serialize()
+        if not self.deserializing:
+            self.serialize()
         
     def get_id(self):
         if self.obj:
@@ -157,12 +167,38 @@ class WorkflowDB(Workflow):
         self.obj.save()
         
     def deserialize(self, obj):
+        from redbreast.core.spec import CoreWFManager
+        from uliweb.orm import get_model
+        WFTask = get_model('workflow_task')
+        WFTrans = get_model('workflow_trans')
+        
         self.obj = obj
         if obj:
-            self.state = obj.state
             workflow_spec = CoreWFManager.get_workflow_spec(obj.spec_name)
             self.spec = workflow_spec
+            self.state = obj.state
             
+            start_task_obj = None
+            task_list = {}
             
-        
-
+            for task_obj in obj.tasks.order_by(WFTask.c.id):
+                if not start_task_obj:
+                    start_task_obj = task_obj
+                task_list[task_obj.id] = self.Task(
+                    self, self.spec.get_task_spec(task_obj.alias_name), state=None)
+                task_list[task_obj.id].deserialize(task_obj)
+            
+            for a in task_list:
+                print a, task_list[a]
+            print "----------------------------------------------"
+            print task_list[start_task_obj.id]
+            print "----------------------------------------------"
+            self.task_tree = task_list[start_task_obj.id]
+            
+            print self.task_tree
+            
+            for trans_obj in obj.trans.order_by(WFTrans.c.id):
+                from_task_id = trans_obj._from_task_
+                to_task_id = trans_obj._to_task_
+                task_list[from_task_id].children.append(task_list[to_task_id])
+                task_list[to_task_id].parents.append(task_list[from_task_id])

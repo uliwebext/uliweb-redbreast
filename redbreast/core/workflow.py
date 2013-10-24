@@ -107,11 +107,3 @@ class Workflow(EventDispatcher):
         #pubsub
         self.spec.fire("workflow:finished", workflow=self)
         self.fire("workflow:state_changed", workflow=self)
-        
-    def serialize(self):
-        pass
-    
-    def deserialize(self, object):
-        pass
-        
-        

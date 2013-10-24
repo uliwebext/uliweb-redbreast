@@ -39,7 +39,7 @@ class Workflow_Trans(Model):
     """
     工作流活动流向表
     """
-    workflow = Reference('workflow', verbose_name='所属工作流')
+    workflow = Reference('workflow', verbose_name='所属工作流', collection_name="trans")
     from_task = Reference('workflow_task', verbose_name='流出活动', collection_name="child_tasks")
     to_task = Reference('workflow_task', verbose_name='流入活动', collection_name="parent_tasks")
     from_name = Field(CHAR, verbose_name='前点名称', max_length=255)
