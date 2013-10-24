@@ -160,6 +160,9 @@ class ReloadSpecCommand(Command):
     option_list = (
         make_option('-t', '--test', dest='test', action='store_true', default=False,
             help='Parse config file but not store them.'),
+        make_option('-y', '--yes', dest='skip_warning', action='store_true', default=False,
+            help='Skip warning information, and always execute next step.')
+            
     )
     has_options = True
     
@@ -168,8 +171,9 @@ class ReloadSpecCommand(Command):
         from uliweb.core.SimpleFrame import get_app_dir
         
         if not options.test:
-            message = """This command will delete all workflow specs, are you sure to do?"""
-            get_answer(message)
+            if not options.skip_warning:
+                message = """This command will delete all workflow specs, are you sure to do?"""
+                get_answer(message)
 
         self.get_application(global_options)
         
