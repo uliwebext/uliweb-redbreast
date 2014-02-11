@@ -27,6 +27,7 @@ class TestCoreWFManager(object):
         Test duplicate name exception
         """
         with pytest.raises(KeyError):
-            wf_spec = WorkflowSpec(name = 'TestWorkFlow')
-            CoreWFManager.add_workflow_spec(wf_spec)
-            CoreWFManager.add_workflow_spec(wf_spec)
+            wf_spec1 = WorkflowSpec(name = 'TestWorkFlow')
+            CoreWFManager.add_workflow_spec(wf_spec1)
+            wf_spec2 = WorkflowSpec(name = 'TestWorkFlow')
+            CoreWFManager.add_workflow_spec(wf_spec2)

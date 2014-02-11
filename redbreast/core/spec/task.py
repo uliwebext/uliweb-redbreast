@@ -1,6 +1,6 @@
 #coding=utf8
 from redbreast.core.utils import EventDispatcher
-from redbreast.core.exception import WFException
+from redbreast.core import WFException
 from result import *
 
 class TaskSpec(object):

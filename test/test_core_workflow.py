@@ -6,6 +6,13 @@ from os.path import dirname, join
 class TestWorkflow(object):
     
     def setup(self):
+
+        import os
+        locate_dir = os.path.dirname(__file__)
+        os.chdir(locate_dir)
+        os.chdir('test_project')
+        from uliweb.manage import make_simple_application
+        app = make_simple_application(apps_dir='./apps')        
         
         spec_dir = "test_project/apps/specapp/workflow_specs/"
         

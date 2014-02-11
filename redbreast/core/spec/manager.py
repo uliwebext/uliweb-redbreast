@@ -1,5 +1,5 @@
 from redbreast.core.utils import Singleton, CommonUtils
-from redbreast.core.exception import *
+from redbreast.core import WFException
 from flow import WorkflowSpec
 
 class WFManager(object):

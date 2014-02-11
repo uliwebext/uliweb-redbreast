@@ -1,5 +1,6 @@
 #-----------------------------------------------
-# Exception
+# Exception, where prefix WF is a shortcut for Workflow
+
 class WFException(Exception):
     def __init__(self, error, sender=None):
         if sender:

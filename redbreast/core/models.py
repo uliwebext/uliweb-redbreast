@@ -4,7 +4,7 @@ from uliweb.orm import *
 
 class Workflow_Spec(Model):
     """
-    工作流定义表
+    工作流定义表 Workflow Specification
     """
     name = Field(CHAR, verbose_name='工作流名称', max_length=255, required=True, unique=True)
     content = Field(PICKLE, verbose_name='工作流定义内容')
@@ -14,7 +14,7 @@ class Workflow_Spec(Model):
     
 class Task_Spec(Model):
     """
-    工作流活动定义表
+    工作流活动定义表 Task SPecification
     """
     name = Field(CHAR, verbose_name='工作流活动名称', max_length=255, required=True, unique=True)
     content = Field(PICKLE, verbose_name='活动定义内容')
