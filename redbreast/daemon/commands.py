@@ -1,5 +1,6 @@
 from uliweb.core.commands import Command, get_input, get_answer
 from optparse import make_option
+from generic import GenericClient
 
 __daemon_prefix__ = 'daemon_'
 
@@ -20,15 +21,13 @@ class DaemonSendCommand(Command):
             print "Error: The message is required."
             return 
         else:
-            daemon_name = args[0]
+            command = args[0]
+            data = None
+            if len(args)>1:
+                data = args[1]
         
-        print 'daemon-send'
-        from gevent.socket import create_connection
-        sock = create_connection((options.host, options.port))
-        sock.send(daemon_name)
-        print sock.recv(1024)
-        sock.close()
-        pass
+        client = GenericClient(port=options.port, host=options.host)
+        client.send(command, data)
 
 class DaemonCommand(Command):
     name = 'daemon'
