@@ -22,8 +22,6 @@ class RedisQueueDaemon(GenericDaemon):
     	info.append("   - port: %s" % __daemon_port__)
     	return info
 
-
-
 def start(args, options, global_options):
     port = options.port and __daemon_port__
     daemon = RedisQueueDaemon(port=port)
