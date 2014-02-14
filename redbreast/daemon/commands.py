@@ -29,6 +29,24 @@ class DaemonSendCommand(Command):
         client = GenericClient(port=options.port, host=options.host)
         client.send(command, data)
 
+class DaemonClientCommand(Command):
+    name = 'daemon-client'
+    help = 'connect to a daemom server'
+    args = '[-p port] message ...parameter...'
+    option_list = (
+        make_option('-h', dest='host', default='localhost',
+            help='Host.'),
+        make_option('-p', dest='port', type='int', default=8000,
+            help='Port number.'),
+    )
+    has_options = True
+    
+    def handle(self, options, global_options, *args):
+        
+        client = GenericClient(port=options.port, host=options.host)
+        client.start()
+
+
 class DaemonCommand(Command):
     name = 'daemon'
     help = 'Start a daemon server'

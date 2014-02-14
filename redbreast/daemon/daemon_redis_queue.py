@@ -17,9 +17,9 @@ class RedisQueueDaemon(GenericDaemon):
         
     def get_server_info(self):
     	info = []
-    	info.append("   %s" % __daemon_name__)
-    	info.append("   - version: %s" % __daemon_version__)
-    	info.append("   - port: %s" % __daemon_port__)
+    	info.append("%s" % __daemon_name__)
+    	info.append("- version: %s" % __daemon_version__)
+    	info.append("- port: %s" % __daemon_port__)
     	return info
 
 def start(args, options, global_options):
