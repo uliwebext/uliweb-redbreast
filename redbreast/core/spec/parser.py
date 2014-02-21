@@ -25,7 +25,8 @@ class WorkflowGrammar(dict):
         def double_tripple(): return 0, ws, _(r'"""(.*?)"""', re.S), blankline
         def single_tripple(): return 0, ws, _(r"'''(.*?)'''", re.S), blankline
         def tripple(): return [single_tripple, double_tripple]
-    
+        def comment_line(): return 0, space, _(r'#[^\r\n]*'), eol
+
         #task
         def task_def_head(): return 0, space, _(r'task'), space, task_def_name, 0, task_def_extend, 0, space, colon, blankline
         def task_def_name(): return iden
@@ -36,7 +37,7 @@ class WorkflowGrammar(dict):
         def kwarg_name(): return iden
         def kwarg_value(): return _(r'[^\r\n]+'), blankline
         def kwarg(): return 0, space, kwarg_name, 0, space, colon, 0, space, kwarg_value
-        def task(): return task_def_head, 0, task_def_desc, -1, [kwarg, blankline], task_def_end
+        def task(): return task_def_head, 0, task_def_desc, -1, [kwarg, blankline, comment_line], task_def_end
     
         #process
         def process_def_head(): return _(r'process'), space, process_def_name, 0, space, colon, blankline
@@ -47,23 +48,24 @@ class WorkflowGrammar(dict):
         def process_task_def(): return 0, space, process_def_alias_task, 0, space, _(r'as'), 0, space, process_task_alias
         def process_tasks_head(): return 0, space, _(r'tasks'), 0, space, colon, blankline
         def process_tasks():
-            return process_tasks_head, -1, [process_task_def, blankline], 0, space, _(r'end'), blankline
+            return process_tasks_head, -1, [process_task_def, blankline, comment_line], 0, space, _(r'end'), blankline
         def process_flows_head(): return 0, space, _(r'flows'), 0, space, colon, blankline
         def process_flows_line(): return -2, (0, space, iden, 0, space, _(r'->')), 0, space, iden, blankline
         def process_flows():
-            return process_flows_head, -1, [process_flows_line, blankline], 0, space, _(r'end'), blankline
+            return process_flows_head, -1, [process_flows_line, blankline, comment_line], 0, space, _(r'end'), blankline
         def process_code_name(): return iden, 0, (_(r'.'), iden)
         def process_code_head(): return 0, space, _(r'code'), 0, space, process_code_name, 0, space, colon, blankline
         def process_code_body(): return _(r'(.*?)end[ \t]*$', re.M|re.S)
         def process_code(): return process_code_head, process_code_body, blankline
-        def process(): return process_def_head, 0, process_def_desc, -1, [kwarg, process_tasks, process_flows, process_code, blankline], 0, space, _(r'end'), blankline
+        def process(): return process_def_head, 0, process_def_desc, -1, [kwarg, process_tasks, process_flows, process_code, blankline, comment_line], 0, space, _(r'end'), blankline
     
         #workflow
-        def workflow(): return 0, ws, -1, [task, process, blankline]
+        def workflow(): return 0, ws, -1, [task, process, blankline, comment_line]
     
         peg_rules = {}
         for k, v in ((x, y) for (x, y) in locals().items() if isinstance(y, types.FunctionType)):
             peg_rules[k] = v
+
         return peg_rules, workflow
     
     def parse(self, text, root=None, skipWS=False, **kwargs):
