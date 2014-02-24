@@ -1,10 +1,13 @@
 from redbreast.core.spec import parse, parseFile
 
 class WFStorage(object):
+    storage_type = 'error'
     def load_workflow(self, wf_spec_name):
         raise NotImplementedError
 
+
 class WFConfigStorage(object):
+    storage_type = 'config'
     def __init__(self):
         self._cache_tasks = {}
         self._cache_workflows = {}
@@ -30,6 +33,7 @@ class WFConfigStorage(object):
         raise KeyError('worlflow spec (%s) does not exist.' % wf_spec_name)
 
 class WFDatabaseStorage(WFStorage):
+    storage_type = 'database'
     def load_workflow(self, wf_spec_name):
         
         from uliweb.orm import get_model

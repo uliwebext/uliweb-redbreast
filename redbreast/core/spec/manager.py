@@ -74,5 +74,10 @@ class WFManager(object):
         
     def set_storage(self, storage):
         self.storage = storage
+
+    def use_database_storage(self):
+        if not self.storage or self.storage.storage_type != "database":
+            from storage import WFDatabaseStorage
+            self.storage = WFDatabaseStorage()
         
 CoreWFManager = WFManager()        

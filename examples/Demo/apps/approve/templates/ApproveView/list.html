@@ -1,0 +1,24 @@
+{{extend "approve_layout.html"}}
+
+{{block content_container}}
+<div class="toolbar">
+    <a href="/approve/add" class="btn btn-primary">创建评审单</a>
+</div>
+{{end}}
+
+{{block content_main}}
+{{use "jquery", ui=True}}
+
+<div class="content">
+
+    {{table_id='testplan_table'}}
+    {{include "inc_table.html"}}
+    {{use "jqutils"}}
+    {{import datetime}}
+    <script>
+        $(function(){
+            create_table("{{=request.path}}", download=false);
+        });
+    </script>
+</div>
+{{end}}

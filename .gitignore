@@ -46,3 +46,8 @@ _project
 #Sandbox*.config
 database.db
 *.*~
+
+#uliweb project
+*/Demo/alembic
+*/Demo/sessions
+*/Demo/uploads

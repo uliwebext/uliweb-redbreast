@@ -4,4 +4,4 @@ from uliweb import expose
 
 @expose('/')
 def index():
-    return {}
+    return redirect('/approve/list')
