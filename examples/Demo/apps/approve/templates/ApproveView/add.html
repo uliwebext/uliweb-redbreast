@@ -1,10 +1,7 @@
 {{extend "approve_layout.html"}}
 
-{{block content_menu}}
-	{{menu('main', 'approve/approve_all')}}
-{{end}}
-
-{{block content_container}}
+{{block content_main}}
+{{use "jquery", ui=True}}
     <div class="box">
         <h2>创建评审单</h2>
         <div class="box-body">

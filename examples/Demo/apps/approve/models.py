@@ -3,8 +3,8 @@ from uliweb.orm import *
 import datetime
 
 class Approve(Model):
-    title = Field(str, max_length=80, verbose_name='标题')
-    content = Field(TEXT, verbose_name='审批内容')
+    title = Field(str, max_length=80, verbose_name='标题', require=True)
+    content = Field(TEXT, verbose_name='审批内容', require=True)
     submitter = Reference('user', verbose_name='提交人')
     submitter_date = Field(datetime.datetime, verbose_name='提交时间')    
     
