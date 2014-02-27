@@ -83,10 +83,11 @@ class TaskDB(Task):
             WFTask = get_model('workflow_task')
 
             data = {
-                'workflow': self.workflow.obj.id,
-                'state': self.state,
-                'spec_name': self.get_spec_name(),
-                'alias_name': self.get_name()
+                'workflow'      : self.workflow.obj.id,
+                'state'         : self.state,
+                'spec_name'     : self.get_spec_name(),
+                'alias_name'    : self.get_name(),
+                'desc'          : self.get_desc(),
             }
             if self.obj:
                 self.obj.update(**data)
@@ -161,9 +162,11 @@ class WorkflowDB(Workflow):
         WF = get_model('workflow')
 
         data = {
-            'spec_name': self.spec.name,
-            'state': self.state,
-            'data' : Serial.dump(self.data),
+            'spec_name'     : self.spec.name,
+            'state'         : self.state,
+            'data'          : Serial.dump(self.data),
+            'desc'          : self.spec.desc,
+
         }
 
         #DEBUG -------------------------

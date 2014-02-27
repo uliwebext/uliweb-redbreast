@@ -43,7 +43,7 @@ end
 
 process ApproveWorkflow:
     '''
-    Approve Workflow
+    审批流程
     '''
     tasks:
         # 别名定义

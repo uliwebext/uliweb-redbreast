@@ -1,15 +1,11 @@
 {{extend "approve_layout.html"}}
 
-{{block content_tool}}
-    <a href="/approve/add" class="btn btn-primary">创建评审单</a>
-{{end}}
-
 {{block content_main}}
 {{use "jquery", ui=True}}
 
 <div class="content">
 
-    {{table_id='testplan_table'}}
+    {{table_id='approve_alllist_table'}}
     {{include "inc_table.html"}}
     {{use "jqutils"}}
     {{import datetime}}

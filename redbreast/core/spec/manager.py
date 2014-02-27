@@ -31,7 +31,7 @@ class WFManager(object):
                 proc, tasks = self.storage.load_workflow(wf_spec_name)
 
                 #instance workflow
-                workflow_spec = WorkflowSpec(name=proc['name'])
+                workflow_spec = WorkflowSpec(name=proc['name'], desc=proc['desc'])
                 
                 for name in proc['tasks']:
                     task_spec_name = proc['tasks'][name]
@@ -43,7 +43,7 @@ class WFManager(object):
                         
                         klass = task['class']
                         cls = CommonUtils.get_spec(task['class'])
-                        task_spec = cls(task['name'])
+                        task_spec = cls(task['name'], desc=task['desc'])
                         task_spec.update_fields(task)
                         self.add_task_spec(task_spec)
                         task_spec = self.get_task_spec(task_spec_name)

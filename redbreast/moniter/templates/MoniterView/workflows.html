@@ -1,0 +1,23 @@
+{{extend "redbreast_moniter_layout.html"}}
+
+{{block sub_menu}}
+    {{sub_menu(menu_items, 'redbreast', 'workflow')}}
+{{end}}
+
+{{block content_tool}}
+{{end}}
+
+{{block content_main}}
+{{use "jquery", ui=True}}
+<div class="content">
+    {{table_id='redbreast_workflow_table'}}
+    {{include "inc_table.html"}}
+    {{use "jqutils"}}
+    {{import datetime}}
+    <script>
+        $(function(){
+            create_table("{{=request.path}}", download=false);
+        });
+    </script>
+</div>
+{{end}}

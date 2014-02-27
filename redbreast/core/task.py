@@ -151,6 +151,9 @@ class Task(object):
     def get_spec_name(self):
         return self.spec.get_spec_name()
 
+    def get_desc(self):
+        return self.spec.get_desc()
+
     def add_parent(self, parent):
         self.parents.append(parent)
             

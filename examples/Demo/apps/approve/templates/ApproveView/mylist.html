@@ -1,0 +1,26 @@
+{{extend "approve_layout.html"}}
+
+{{block sub_menu}}
+    {{sub_menu(menu_items, 'approve', 'approve_mine')}}
+{{end}}
+
+{{block content_tool}}
+    <a href="/approve/add" class="btn btn-primary">创建评审单</a>
+{{end}}
+
+{{block content_main}}
+{{use "jquery", ui=True}}
+
+<div class="content">
+
+    {{table_id='approve_mylist_table'}}
+    {{include "inc_table.html"}}
+    {{use "jqutils"}}
+    {{import datetime}}
+    <script>
+        $(function(){
+            create_table("{{=request.path}}", download=false);
+        });
+    </script>
+</div>
+{{end}}

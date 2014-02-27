@@ -25,6 +25,28 @@ class ApproveView(object):
             result.update({'table':view})
             return result
 
+    def mylist(self):
+        from uliweb.utils.generic import ListView, get_sort_field
+        view = ListView(self.model)
+
+        if 'data' in request.values:
+            return json(view.json())
+        else:
+            result = view.run(head=True, body=False)
+            result.update({'table':view})
+            return result
+
+    def todolist(self):
+        from uliweb.utils.generic import ListView, get_sort_field
+        view = ListView(self.model)
+
+        if 'data' in request.values:
+            return json(view.json())
+        else:
+            result = view.run(head=True, body=False)
+            result.update({'table':view})
+            return result
+
     @decorators.check_role('wf_create')
     def add(self):
         from uliweb.utils.generic import AddView

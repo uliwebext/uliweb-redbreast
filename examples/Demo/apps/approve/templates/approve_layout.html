@@ -6,17 +6,6 @@
     {{end}}
 {{end}}
 
-
-
-{{block content_sidebar}}
-<div class="sidebar">
-    {{block sub_menu}}
-        {{menu('main', 'approve/approve_all', _class="simplemenu")}}
-    {{end}}
-</div>
-{{end}}
-
-
 {{block content_sidebar}}
 {{use "jquery"}}
 {{use "jsmenu"}}
@@ -28,8 +17,8 @@ menu_items.append(
     'title':_('评审单'),
     'subs':[
             {'name':'approve_all', 'title':'全部评审单', 'link': '/approve/list'},
-            {'name':'approve_my', 'title':'我发起的评审单', 'link': '/approve/mylist'},
-            {'name':'approve_process', 'title':'待处理的评审单', 'link': '/approve/mylist'},
+            {'name':'approve_mine', 'title':'我发起的评审单', 'link': '/approve/mylist'},
+            {'name':'approve_todo', 'title':'待处理的评审单', 'link': '/approve/todolist'},
             ]
     },
 )

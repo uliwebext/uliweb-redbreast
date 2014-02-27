@@ -49,6 +49,9 @@ class WorkflowSpec(object):
         
         def get_spec_name(self):
             return self.delegate.name
+
+        def get_desc(self):
+            return self.delegate.desc
         
         def get_ancestors(self):
             
@@ -98,13 +101,13 @@ class WorkflowSpec(object):
         
     __supported_config_fields__ = []
             
-    def __init__(self, name=None):
+    def __init__(self, name=None, **kwargs):
         from manager import WFManager
         
         super(WorkflowSpec, self).__init__()
 
         self.name = name or ""
-        self.description = ""
+        self.desc = kwargs.get('desc', '')
         self.task_specs = {}
         self.task_inputs = {}
         self.task_outputs = {}
