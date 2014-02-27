@@ -2,11 +2,17 @@
 
 from uliweb import expose, functions, settings, decorators
 from uliweb.i18n import gettext_lazy as _
+from helper import ApproveHelper
 import datetime
 
 def __begin__():
     from uliweb import functions
     return functions.require_login()
+
+def approve_title(value, obj):
+    from uliweb.core.html import Tag
+    return str(Tag('a', value, href='/approve/view/%d' % obj.id))
+
 
 @expose('/approve/')
 class ApproveView(object):
@@ -16,7 +22,8 @@ class ApproveView(object):
 
     def list(self):
     	from uliweb.utils.generic import ListView, get_sort_field
-        view = ListView(self.model)
+        fields_convert_map = {'title': approve_title}
+        view = ListView(self.model, fields_convert_map=fields_convert_map)
 
         if 'data' in request.values:
             return json(view.json())
@@ -27,7 +34,10 @@ class ApproveView(object):
 
     def mylist(self):
         from uliweb.utils.generic import ListView, get_sort_field
-        view = ListView(self.model)
+        fields_convert_map = {'title': approve_title}
+        cond = (self.model.c.submitter == request.user.id)
+        view = ListView(self.model, condition=cond, 
+            fields_convert_map=fields_convert_map)
 
         if 'data' in request.values:
             return json(view.json())
@@ -38,7 +48,8 @@ class ApproveView(object):
 
     def todolist(self):
         from uliweb.utils.generic import ListView, get_sort_field
-        view = ListView(self.model)
+        fields_convert_map = {'title': approve_title}
+        view = ListView(self.model, fields_convert_map=fields_convert_map)
 
         if 'data' in request.values:
             return json(view.json())
@@ -50,7 +61,7 @@ class ApproveView(object):
     @decorators.check_role('wf_create')
     def add(self):
         from uliweb.utils.generic import AddView
-        from helper import ApproveHelper
+        
 
         helper = ApproveHelper()
 
@@ -69,6 +80,27 @@ class ApproveView(object):
         return result
 
     def view(self, id):
-        pass
+        from uliweb.utils.generic import DetailView
+        
+        obj = self.model.get(int(id))
 
+        fields = ('title','content','submitter','submitter_date')
+        layout = [
+                '-- 评审单基本信息 --',
+                ('title'),
+                ('content'),
+                ('submitter', 'submitter_date'),
+                ]
+        
+        view = DetailView(self.model, obj=obj, fields=fields, layout=layout)
+        result = view.run()
+
+        helper = ApproveHelper()
+        helper.bind(obj, get_workflow=True)
+        state = helper.get_workflow_state()
+
+
+        data = {'detailview': result['view'], 'state': state}
+
+        return data
 

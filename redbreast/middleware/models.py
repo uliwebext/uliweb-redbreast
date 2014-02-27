@@ -32,7 +32,7 @@ class Workflow_Task(Model):
     spec_name = Field(CHAR, verbose_name='活动定义名称', max_length=255)
     desc = Field(CHAR, verbose_name='活动显示名称', max_length=255)
     alias_name = Field(CHAR, verbose_name='活动名称', max_length=255)
-    state = Field(int, verbose_name='活动状态', default=1, choices=get_var('PARA/WF_STATUS'))
+    state = Field(int, verbose_name='活动状态', default=1, choices=get_var('PARA/WF_TASK_STATUS'))
     created_date = Field(datetime.datetime, verbose_name='创建时间', auto_now_add=True)
     created_user = Reference('user', verbose_name='创建人', default=get_modified_user, auto_add=True)
     modified_date = Field(datetime.datetime, verbose_name='修改时间', auto_now=True, auto_now_add=True)

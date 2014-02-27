@@ -12,6 +12,7 @@ class TaskSpec(object):
         super(TaskSpec, self).__init__()
         self.name = str(name) #unique in workflow
         self.desc = kwargs.get('desc', '')
+        self.automatic = kwargs.get('automatic', False)
         self.default = kwargs.get('default', False)
         
         self._plugins = kwargs.get('plugins', [])
@@ -57,7 +58,10 @@ class TaskSpec(object):
         return ret
     
     def ready(self, task, workflow):
-        return YES
+        if self.automatic:
+            return YES
+        else:
+            return NO
         
     def do_execute(self, task, workflow, transfer=False):
         from redbreast.core import Task
@@ -91,7 +95,7 @@ class TaskSpec(object):
     def do_transfer(self, task, workflow):
         from redbreast.core import Task
         
-        fnc_transfer = task.spec.get_code('execute') or self.transfer
+        fnc_transfer = task.spec.get_code('transfer') or self.transfer
         
         # TASK      EXECUTED --> COMPLETED
         # YES       EXECUTED --> COMPLETED

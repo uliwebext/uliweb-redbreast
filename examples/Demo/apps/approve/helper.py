@@ -8,8 +8,15 @@ class ApproveHelper(object):
         self.init_workflow_engine()
         self.WORKFLOW_NAME = "ApproveWorkflow"
 
-    def bind(self, approve):
+        self._approve = None
+        self._workflow = None
+
+    def bind(self, approve, get_workflow=False):
         self._approve = approve
+
+        if get_workflow and self._approve.workflow:
+            if not self._workflow:
+                self._workflow = Workflow.load(self._approve._workflow_)
 
     def init_workflow_engine(self):
         CoreWFManager.use_database_storage()
@@ -26,7 +33,16 @@ class ApproveHelper(object):
         self._approve.workflow = workflow.get_id()
         self._approve.save()
 
-
-
         return workflow
+
+    def get_workflow_state(self):
+        if self._workflow:
+            return self._workflow.get_state_name()
+        return ""
+
+    def get_workflow_tasklog(self):
+        pass
+
+    def get_translog(self):
+        pass
 

@@ -1,0 +1,17 @@
+{{extend "approve_layout.html"}}
+
+{{block content_main}}
+{{use "jquery", ui=True}}
+    <div class="box">
+        <h2>查看评审单</h2>
+        <div class="box-body">
+            {{embed detailview}}
+        </div>
+    </div>
+
+    <div class="box">
+        <h2>工作流信息</h2>
+        <div class="box-body">
+            工作流状态: {{=state}}
+        </div>
+{{end}}
