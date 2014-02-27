@@ -4,6 +4,9 @@ from uliweb import expose, functions, settings, decorators
 from uliweb.i18n import gettext_lazy as _
 import datetime
 
+def __begin__():
+    from uliweb import functions
+    return functions.require_login()
 
 @expose('/approve/')
 class ApproveView(object):
@@ -39,7 +42,11 @@ class ApproveView(object):
 
         view = AddView(self.model, url_for(self.__class__.list),
         	 pre_save=pre_save, post_save=post_save)
-        
+
         result = view.run()
         return result
+
+    def view(self, id):
+        pass
+
 

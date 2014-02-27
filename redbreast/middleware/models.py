@@ -21,7 +21,8 @@ class Workflow(Model):
     created_user = Reference('user', verbose_name='创建人', default=get_modified_user, auto_add=True)
     modified_date = Field(datetime.datetime, verbose_name='修改时间', auto_now=True, auto_now_add=True)
     modified_user = Reference('user', verbose_name='修改人', default=get_modified_user, auto=True, auto_add=True)
-    
+    data = Field(PICKLE, verbose_name='工作流绑定数据')
+
 class Workflow_Task(Model):
     """
     工作流活动实例表
@@ -34,7 +35,8 @@ class Workflow_Task(Model):
     created_user = Reference('user', verbose_name='创建人', default=get_modified_user, auto_add=True)
     modified_date = Field(datetime.datetime, verbose_name='修改时间', auto_now=True, auto_now_add=True)
     modified_user = Reference('user', verbose_name='修改人', default=get_modified_user, auto=True, auto_add=True)
-    
+    data = Field(PICKLE, verbose_name='工作流活动绑定数据')
+
 class Workflow_Trans(Model):
     """
     工作流活动流向表
@@ -46,4 +48,4 @@ class Workflow_Trans(Model):
     to_name = Field(CHAR, verbose_name='终点名称', max_length=255)
     created_date = Field(datetime.datetime, verbose_name='创建时间', auto_now_add=True)
     created_user = Reference('user', verbose_name='创建人', default=get_modified_user, auto_add=True)
-    
+

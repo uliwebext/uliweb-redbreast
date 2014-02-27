@@ -11,48 +11,56 @@ import time
 LOG = logging.getLogger(__name__)
 
 class Workflow(EventDispatcher):
-    
+
     CREATED   =  1
     RUNNING   =  2
     FINISHED  =  4
-    
+
     state_names = {
         CREATED:   'CREATED',
         RUNNING:   'RUNNING',
         FINISHED:  'FINISHED',
     }
-    
+
     def __init__(self, workflow_spec, **kwargs):
-        
+
         LOG.debug("__init__ Workflow instance %s" % str(self))
-        
+
         super(Workflow, self).__init__()
-        
+
         self.spec = workflow_spec
         self.Task = kwargs.get('task_klass', Task)
         self.data = {}
         self.parent_workflow = kwargs.get('parent', self)
-        
-        
+
+
         self.task_tree = None
         self.last_task = None
-        
+
         self.state = self.CREATED
-        
+
         #pubsub
-        if self.spec :  
+        if self.spec :
             self.spec.fire("workflow:created", workflow=self)
         self.fire("workflow:state_changed", workflow=self)
-        
+
     def get_alldata(self):
         return self.data
-    
+
     def get_data(self, name, default=None):
         return self.data.get(name, default)
-    
+
+    def set_data(self, name, value=None):
+        if isinstance(name, dict):
+            for key in name:
+                self.data[key] = name[key]
+        elif isinstance(name, str):
+            self.data[name] = value
+        self.fire("workflow:data_changed", workflow=self)
+
     def get_state_name(self):
         return self.state_names.get(self.state, None)
-    
+
     def is_multiple_start(self):
         return self.spec.is_multiple_start
 
@@ -61,7 +69,7 @@ class Workflow(EventDispatcher):
         if self.spec.is_multiple_start:
             if not start :
                 raise WFException('You must choose which task to start for mulitple-starts workflow')
-            
+
             start_task = self.spec.get_task_spec(start)
             if not start_task:
                 names = ','.join(self.spec.get_start_names())
@@ -69,20 +77,20 @@ class Workflow(EventDispatcher):
             self.task_tree = self.Task(self, start_task)
         else:
             self.task_tree = self.Task(self, self.spec.start)
-            
+
         self.state = self.RUNNING
         #pubsub
         self.spec.fire("workflow:running", workflow=self)
         self.fire("workflow:state_changed", workflow=self)
         self.task_tree.is_ready()
-        
+
     def run(self):
         while self.run_next():
             pass
-        
+
     def run_all(self):
         self.run()
-        
+
     def run_next(self):
         # Walk through all waiting tasks.
         for task in Task.Iterator(self.task_tree, Task.READY):
@@ -92,7 +100,7 @@ class Workflow(EventDispatcher):
                 task.do_execute(transfer=True)
                 return True
         return False
-    
+
     def run_from_id(self, task_id):
         if task_id is None:
             raise WFException(self.spec, 'task_id is None')
@@ -101,7 +109,7 @@ class Workflow(EventDispatcher):
                 return task.complete()
         msg = 'A task with the given task_id (%s) was not found' % task_id
         raise WFException(self.spec, msg)
-    
+
     def finish(self):
         self.state = self.FINISHED
         #pubsub
