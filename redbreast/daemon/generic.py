@@ -27,7 +27,7 @@ class DaemonMsg(object):
 
     @classmethod
     def dump(cls, v):
-        return cPickle.dumps(v, cPickle.HIGHEST_PROTOCOL) 
+        return cPickle.dumps(v, cPickle.HIGHEST_PROTOCOL)
 
 class DaemonRequest(DaemonMsg):
     def __init__(self, command, msg=None, data=None):
@@ -89,6 +89,14 @@ class GenericClient(object):
                 self.prints("{{white|red:[ERROR]}}: cannot connect to the server at %s:%s"% (self.host, self.port))
             else:
                 self.prints(e)
+        if command == "help":
+            self.print_client_help()
+
+    def print_client_help(self):
+        self.prints("\nsupported commands of client:")
+        self.prints(" %-10s   %s" % ("host", "connect to another host"))
+        self.prints(" %-10s   %s" % ("port", "change to connect to another port"))
+        self.prints(" %-10s   %s" % ("exit", "exit this client"))
 
     def start(self):
         self.prints("Daemon Client %s" % __daemon_client_version__)
@@ -104,6 +112,14 @@ class GenericClient(object):
                     get_next_command = False
                     continue
 
+                if cmd == "port":
+                    self.handle_port(cmd, inputs)
+                    continue
+
+                if cmd == "host":
+                    self.handle_host(cmd, inputs)
+                    continue
+
                 msg = None
                 data = None
                 if len(inputs)>1:
@@ -114,30 +130,52 @@ class GenericClient(object):
 
             #self.send(inputs[])
 
+    def handle_host(self, cmd, inputs):
+        if len(inputs) < 2:
+            self.prints("current server is (%s, %s)," % (self.host, self.port))
+            self.prints(" use 'host [HOSTNAME]' to update hostname.")
+        else:
+            old = self.host
+            self.host = inputs[1]
+            self.prints("host changed from %s to %s" % (old, self.host))
+
+
+    def handle_port(self, cmd, inputs):
+        if len(inputs) < 2:
+            self.prints("current server is (%s, %s)," % (self.host, self.port))
+            self.prints(" use 'port [PORT]' to change port.")
+        else:
+            oldport = self.port
+            self.port = inputs[1]
+            self.prints("port changed from %s to %s" % (oldport, self.port))
+
 
 class GenericDaemon(object):
-    
+
     def __init__(self, **kwargs):
         super(GenericDaemon, self).__init__()
         self.port = kwargs.get('port', 5000)
         self.host = kwargs.get('host', '')
+        self.sleep_seconds = kwargs.get('sleep', 0.5)
 
         self.supported_requests = {}
-        
+
         self.register_request('server', usage="get server information")
         self.register_request('help', usage="get supportted command list")
         self.register_request('shutdown', usage="shut server down")
         self.register_request('echo', usage="echo from server")
-        
+
         self.strftime = "%Y-%m-%d %H:%M:%S"
+
+        self.stopMainLoop = False
 
     def gettimestamp(self):
         from time import gmtime, strftime
         return strftime(self.strftime)
-        
+
     def get_server_info(self):
         return "Generic Daemon"
-        
+
     def prints(self, value):
         if isinstance(value, str):
             values = value.split("\n")
@@ -148,10 +186,10 @@ class GenericDaemon(object):
             for s in value:
                 #log.info(s)
                 print s
-            
+
     def get_address(self):
         return (self.host, self.port)
-    
+
     def register_request(self, cmd, usage=""):
         msg = None
         if isinstance(cmd, str):
@@ -166,19 +204,22 @@ class GenericDaemon(object):
 
     def get_request_handle(self, msg):
         return self.supported_requests[msg.command].handle
-    
+
+    def mainLoop(self):
+        pass
+
     def startMainLoop(self):
-        pass
-    
+        import gevent
+        print ""
+        while True:
+            gevent.sleep(self.sleep_seconds)
+            if self.stopMainLoop:
+                self.prints(">>> MainLoop is stoped at %s" % self.gettimestamp())
+                break
+            self.mainLoop()
+
+
     def startOperationServer(self):
-        pass
-
-    def print_daemon_head(self):
-        self.prints("---------------------------------------------")
-        self.prints(self.get_server_info())
-        self.prints("---------------------------------------------")
-
-    def start(self):
         from gevent.server import StreamServer
         server = None
 
@@ -213,11 +254,24 @@ class GenericDaemon(object):
             if req.command == "shutdown":
                 server.stop()
             return True
-        
+
         self.print_daemon_head()
         server = StreamServer(self.get_address(), handle)
         server.serve_forever()
-        self.prints("The server has been shutdown at %s" % self.gettimestamp())
+        self.prints("The stream server has been shutdown at %s" % self.gettimestamp())
+
+    def print_daemon_head(self):
+        self.prints("---------------------------------------------")
+        self.prints(self.get_server_info())
+        self.prints("---------------------------------------------")
+
+    def start(self):
+
+        import gevent
+        gevent.joinall([
+            gevent.spawn(self.startMainLoop),
+            gevent.spawn(self.startOperationServer)
+        ])
 
     def handle_server(self, req):
         msg = []
@@ -242,11 +296,11 @@ class GenericDaemon(object):
         return DaemonResponse(True, req.msg)
 
     def handle_shutdown(self, req):
+        self.stopMainLoop = True
         return DaemonResponse(True, "The server is shutting down.")
 
 
 
-        
-    
-    
-    
+
+
+
