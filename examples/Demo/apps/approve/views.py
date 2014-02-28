@@ -36,7 +36,7 @@ class ApproveView(object):
         from uliweb.utils.generic import ListView, get_sort_field
         fields_convert_map = {'title': approve_title}
         cond = (self.model.c.submitter == request.user.id)
-        view = ListView(self.model, condition=cond, 
+        view = ListView(self.model, condition=cond,
             fields_convert_map=fields_convert_map)
 
         if 'data' in request.values:
@@ -58,10 +58,10 @@ class ApproveView(object):
             result.update({'table':view})
             return result
 
-    @decorators.check_role('wf_create')
+    @decorators.check_permission('ApproveCreate')
     def add(self):
         from uliweb.utils.generic import AddView
-        
+
 
         helper = ApproveHelper()
 
@@ -81,7 +81,7 @@ class ApproveView(object):
 
     def view(self, id):
         from uliweb.utils.generic import DetailView
-        
+
         obj = self.model.get(int(id))
 
         fields = ('title','content','submitter','submitter_date')
@@ -91,7 +91,7 @@ class ApproveView(object):
                 ('content'),
                 ('submitter', 'submitter_date'),
                 ]
-        
+
         view = DetailView(self.model, obj=obj, fields=fields, layout=layout)
         result = view.run()
 
