@@ -1,0 +1,15 @@
+{{extend "redbreast_moniter_layout.html"}}
+
+{{block sub_menu}}
+    {{sub_menu(menu_items, 'redbreast', 'workflow-task')}}
+{{end}}
+
+{{block content_main}}
+{{use "jquery", ui=True}}
+    <div class="box">
+        <h2>查看工作流活动信息</h2>
+        <div class="box-body">
+            {{embed view}}
+        </div>
+    </div>
+{{end}}

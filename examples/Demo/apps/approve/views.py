@@ -13,6 +13,39 @@ def approve_title(value, obj):
     from uliweb.core.html import Tag
     return str(Tag('a', value, href='/approve/view/%d' % obj.id))
 
+def get_deliver_form(from_task, to_tasks):
+    from uliweb.form import Form, Button, TextField, HiddenField
+    if len(to_tasks) == 1:
+        spec_name, desc = to_tasks[0]
+        class DeliverForm(Form):
+            form_buttons = [Button(value='流转到%s' % desc, _class="btn btn-primary", 
+                type='button', id='btnDeliver')]
+
+            trans_message = TextField(label='流转意见', html_attrs={'style':'width:80%'})
+            from_task_id = HiddenField(label='id', 
+                html_attrs={'style':'display:none'}, default=from_task.get_unique_id())
+    elif len(to_tasks)>1:
+        from uliweb.form import SelectField
+        choices = to_tasks
+        class DeliverForm(Form):
+            form_buttons = [Button(value='流转', _class="btn btn-primary", 
+                type='button', id='btnDeliver')]
+
+            trans_message = TextField(label='流转意见', html_attrs={'style':'width:80%'}, required=True)
+            to_tasks = SelectField(label='流转给', choices=choices, required=True)
+            from_task_id = HiddenField(label='id', 
+                html_attrs={'style':'display:none'}, default=from_task.get_unique_id())
+    elif len(to_tasks) == 0:
+        class DeliverForm(Form):
+            form_buttons = [Button(value='办结', _class="btn btn-primary", 
+                type='button', id='btnDeliver')]
+
+            trans_message = TextField(label='办结意见', html_attrs={'style':'width:80%'}, required=True)
+            from_task_id = HiddenField(label='id', 
+                html_attrs={'style':'display:none'}, default=from_task.get_unique_id())
+
+    return DeliverForm()
+
 
 @expose('/approve/')
 class ApproveView(object):
@@ -58,7 +91,7 @@ class ApproveView(object):
             result.update({'table':view})
             return result
 
-    @decorators.check_permission('ApproveCreate')
+    @decorators.check_permission('ApproveWorkflowCreate')
     def add(self):
         from uliweb.utils.generic import AddView
 
@@ -81,10 +114,11 @@ class ApproveView(object):
 
     def view(self, id):
         from uliweb.utils.generic import DetailView
+        #from uliweb.utils.generic import EditView
 
         obj = self.model.get(int(id))
 
-        fields = ('title','content','submitter','submitter_date')
+        fields = ['title','content','submitter','submitter_date']
         layout = [
                 '-- 评审单基本信息 --',
                 ('title'),
@@ -99,8 +133,70 @@ class ApproveView(object):
         helper.bind(obj, get_workflow=True)
         state = helper.get_workflow_state()
 
+        data = {'detailview': result['view'], 'state': state, 'obj': result['object']}
 
-        data = {'detailview': result['view'], 'state': state}
+        tasks = helper.get_active_tasks()
+
+        if len(tasks) == 1:
+            task_id = tasks[0].get_unique_id()
+            fields = [{'name': 'trans_message', 'verbose_name':'流转意见'}]
+
+            if helper.has_deliver_permission(tasks[0], request.user):
+                next_tasks = tasks[0].get_next_tasks()
+                form = get_deliver_form(tasks[0], next_tasks)
+
+                data.update({
+                    'deliverform': form,
+                    'show_deliver_form':True,
+                    'task_desc': tasks[0].get_desc(),
+                    'task_spec_name': tasks[0].get_spec_name()
+                })
+
+            else:
+                data.update({
+                    'show_deliver_form':False,
+                    'task_desc': tasks[0].get_desc(),
+                    'task_spec_name': tasks[0].get_spec_name()
+                })                
+
+        else:
+            data.update({
+                'show_deliver_form': False,
+                'task_desc': None
+            })
 
         return data
+
+    def deliver(self, id):
+        obj = self.model.get(int(id))
+        helper = ApproveHelper()
+        helper.bind(obj, get_workflow=True)
+        state = helper.get_workflow_state()
+        tasks = helper.get_active_tasks()
+
+        if len(tasks) == 1:
+            task_id = tasks[0].get_unique_id()
+            next_tasks = tasks[0].get_next_tasks()
+
+            from_task_id = request.POST.get('from_task_id')
+            if from_task_id != task_id:
+                return json({'success': False, 'message': '无效的标识，请求的活动可能已经被他人流转。'})
+
+            trans_message = request.POST.get('trans_message', '')
+            if len(next_tasks)>1:
+                to_tasks = request.POST.get('to_tasks', None)
+                if not to_tasks:
+                    return json({'success': False, 'message': '无效的请求，您没有指定需要流转的流向。'})
+
+                helper.deliver(trans_message, next_tasks=[to_tasks])
+            else:
+                helper.deliver(trans_message)   
+            
+            
+            return json({'success': True})         
+        else:
+            return json({'success': False, 'message': '无效的请求，请求的活动可能已经被他人流转。'})
+
+
+
 

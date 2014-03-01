@@ -58,6 +58,9 @@ class Workflow(EventDispatcher):
             self.data[name] = value
         self.fire("workflow:data_changed", workflow=self)
 
+    def get_spec_name(self):
+        return self.spec.name
+
     def get_state_name(self):
         return self.state_names.get(self.state, None)
 
@@ -105,10 +108,22 @@ class Workflow(EventDispatcher):
         if task_id is None:
             raise WFException(self.spec, 'task_id is None')
         for task in self.task_tree:
-            if task.id == task_id:
+            if task.uuid == task_id:
                 return task.complete()
         msg = 'A task with the given task_id (%s) was not found' % task_id
         raise WFException(self.spec, msg)
+
+    def deliver(self, task_id, message=None, next_tasks=[], async=True):
+        if task_id is None:
+            raise WFException(self.spec, 'task_id is None')
+        for task in self.task_tree:
+            if task.uuid == task_id:
+                return task.deliver(message=message, next_tasks=next_tasks, async=async)
+        msg = 'A task with the given task_id (%s) was not found' % task_id
+        raise WFException(self.spec, msg)
+
+    def get_active_tasks(self):
+        return [task for task in Task.Iterator(self.task_tree, Task.ACTIVE)]
 
     def finish(self):
         self.state = self.FINISHED

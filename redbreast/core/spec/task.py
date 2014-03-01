@@ -46,7 +46,7 @@ class TaskSpec(object):
         fnc_ready = task.spec.get_code('ready') or self.ready
         ret = fnc_ready(task, workflow)
         
-        # YES  WAITING --> READY
+        # YES  ACTIVE --> READY
         # NO   nothing
         if ret == YES:
             from redbreast.core import Task
@@ -118,7 +118,8 @@ class TaskSpec(object):
                 for task_spec in task.spec.outputs:
                     if new_ret == YES or (task_spec.name in new_ret):
                         
-                        new_task = workflow.Task(workflow, task_spec, parent=task)
+                        new_task = workflow.Task(workflow, 
+                            task_spec, parent=task, message=task._to_message)
                         #new_task.add_parent(task)
                         #Test ready for every new added child
                         task_spec.is_ready(new_task, workflow)
@@ -158,7 +159,7 @@ class JoinTask(TaskSpec):
         #merge tasks
         
         for one in workflow.task_tree:
-            if one != task and one.spec == task.spec and one.state & Task.WAITING != 0 :
+            if one != task and one.spec == task.spec and one.state & Task.ACTIVE != 0 :
                 for p in task.parents:
                     one.add_parent(p)
                     p.add_child(one)
@@ -187,6 +188,19 @@ class ChoiceTask(TaskSpec):
         return ret
         
     def choose(self, data, task, workflow):
+        result = []
+        task_ids = task._next_tasks
+        for task_id in task_ids:
+            if not task_id in task.spec.outputs:
+                raise WFException(self, 'user choosed task %s is invalid' % task_id)
+            result.append(task_id)
+
+        if len(result) > 1:
+            raise WFException(self, 'ChoiceTask %s only have one deliver task.' % self.name)
+
+        if len(result) == 1:
+            return result
+
         for task_spec in task.spec.outputs:
             if task_spec.is_default():
                 return [task_spec.name]

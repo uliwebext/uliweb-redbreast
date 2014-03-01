@@ -9,13 +9,13 @@ LOG = logging.getLogger(__name__)
 
 class Task(object):
 
-    WAITING   =  1
+    ACTIVE    =  1
     READY     =  2
     EXECUTING =  4
     EXECUTED  =  8
     COMPLETED = 16
     
-    # waiting --> ready()  --> ready
+    # active --> ready()  --> ready
     # ready --> execute() 
     # if async ---> executing
     #    async-callback --> executed
@@ -23,7 +23,7 @@ class Task(object):
     # executed --> transfer() ---> completed
 
     state_names = {
-        WAITING:   'WAITING',
+        ACTIVE:    'ACTIVE',
         READY:     'READY',
         EXECUTING: 'EXECUTING',
         EXECUTED:  'EXECUTED',
@@ -31,7 +31,7 @@ class Task(object):
     }
     
     state_fire_event_names = {
-        WAITING:   'enter',
+        ACTIVE:    'enter',
         READY:     'ready',
         EXECUTING: 'executing',
         EXECUTED:  'executed',
@@ -83,7 +83,9 @@ class Task(object):
                     return next
     
     
-    def __init__(self, workflow, task_spec, parent=None, state=WAITING):
+    def __init__(self, workflow, task_spec, parent=None, state=ACTIVE, **kwargs):
+
+        self.uuid = uuid4()
         self.workflow = workflow
         self.spec = task_spec
         self.parents = []
@@ -95,12 +97,16 @@ class Task(object):
         self.state = state
         
         self.data = {}
-        self.id = uuid4()
         
         self.children = []
         if parent is not None:
             for p in self.parents:
                 p.add_child(self)
+
+        #data for deliver
+        self._to_message = None
+        self._from_message = kwargs.get('message', None)
+        self._next_tasks = []
             
     def __iter__(self):
         return Task.Iterator(self)
@@ -133,7 +139,21 @@ class Task(object):
         del self._state
     
     state = property(_getstate, _setstate, _delstate, "State property.")
-        
+
+    def get_alldata(self):
+        return self.data
+
+    def get_data(self, name, default=None):
+        return self.data.get(name, default)
+
+    def set_data(self, name, value=None):
+        if isinstance(name, dict):
+            for key in name:
+                self.data[key] = name[key]
+        elif isinstance(name, str):
+            self.data[name] = value
+        #self.fire("workflow:data_changed", workflow=self)
+
     def get_level(self):
         level = 0
         task = self.parent
@@ -141,6 +161,9 @@ class Task(object):
             level += 1
             task = task.parent
         return level
+
+    def get_unique_id(self):
+        return self.uuid
     
     def get_state_name(self):
         return self.state_names.get(self.state, None)
@@ -153,6 +176,9 @@ class Task(object):
 
     def get_desc(self):
         return self.spec.get_desc()
+
+    def get_next_tasks(self):
+        return [(task.get_spec_name(), task.get_desc()) for task in self.spec.outputs]
 
     def add_parent(self, parent):
         self.parents.append(parent)
@@ -178,7 +204,17 @@ class Task(object):
     
     def do_execute(self, transfer=False):
         return self.spec.do_execute(self, self.workflow, transfer=transfer)
-    
+
+    def deliver(self, message=None, next_tasks=[], async=True):
+        self.state = Task.READY
+        self._to_message = message
+        self._next_tasks = []
+
+        if async == False:
+            return self.do_execute(transfer=True)
+
+        return True
+
     def is_descendant_of(self, parent):
         if not self.parents:
             return False

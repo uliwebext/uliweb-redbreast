@@ -50,7 +50,7 @@ process ApproveWorkflow:
         CreateApproveTask   as Create
         GroupApproveTask    as Group
         DepartApproveTask   as Depart
-        ManagerApproveTask  as Manger
+        ManagerApproveTask  as Manager
         BossApproveTask     as Boss
         CheckerTask         as Checker
         ArchiverTask        as Archiver
@@ -60,8 +60,8 @@ process ApproveWorkflow:
     flows:
         # 流向可以分成多行
         Create->Group->Depart
-            Depart->Manger->Checker
-            Depart->Manger->Checker
+            Depart->Manager->Checker
+            Depart->Boss->Checker
         Checker->Archiver
     end
 

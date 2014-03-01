@@ -1,0 +1,16 @@
+{{use "jquery", ui=True}}
+<div class="box">
+    <h2>活动列表</h2>
+    <div class="box-body">
+        {{table_id='redbreast_workflowtask_table'}}
+        {{include "inc_table.html"}}
+        {{use "jqutils"}}
+        {{import datetime}}
+        <script>
+            $(function(){
+                create_table("{{=request.path}}", download=false, {height:300});
+            });
+        </script>
+
+    </div>
+</div>

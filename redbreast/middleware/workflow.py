@@ -61,10 +61,10 @@ class TaskTrans(object):
 
 class TaskDB(Task):
 
-    def __init__(self, workflow, task_spec, parent=None, state=Task.WAITING):
+    def __init__(self, workflow, task_spec, parent=None, state=Task.ACTIVE, **kwargs):
         self.obj = None
         self.killed = False
-        super(TaskDB, self).__init__(workflow, task_spec, parent, state)
+        super(TaskDB, self).__init__(workflow, task_spec, parent, state, **kwargs)
 
     def kill(self):
         super(TaskDB, self).kill()
@@ -88,6 +88,7 @@ class TaskDB(Task):
                 'spec_name'     : self.get_spec_name(),
                 'alias_name'    : self.get_name(),
                 'desc'          : self.get_desc(),
+                'uuid'      : self.uuid,
             }
             if self.obj:
                 self.obj.update(**data)
@@ -101,6 +102,7 @@ class TaskDB(Task):
         if self.obj:
             self._state = obj.state
             self.state_history = [obj.state]
+            self.uuid = obj.uuid
 
 class WorkflowDB(Workflow):
 
@@ -119,15 +121,22 @@ class WorkflowDB(Workflow):
         return None
 
     def __init__(self, workflow_spec, **kwargs):
+        from uliweb.orm import get_model
+
         super(WorkflowDB, self).__init__(workflow_spec, task_klass=TaskDB, **kwargs)
 
         self.deserializing = kwargs.get('deserializing', False)
         self.obj = None
+        self.model = get_model('workflow')
 
         def task_save(event):
             if not event.target.deserializing:
+                print "-----------------"
                 task = event.task
                 task.serialize()
+
+                print task
+                print task.state
 
         def trans_add(event):
             if not event.target.deserializing:
@@ -150,6 +159,14 @@ class WorkflowDB(Workflow):
         self.on("workflow:data_changed", workflow_save)
         if not self.deserializing:
             self.serialize()
+
+    def get_state_name(self):
+        if self.obj:
+            return self.obj.get_display_value('state')
+        else:
+            from uliweb import settings
+            choices = settings.get_var('PARA/WF_STATUS')
+            return choices[self.state]
 
     def get_id(self):
         if self.obj:
@@ -177,7 +194,7 @@ class WorkflowDB(Workflow):
             print 'spec_name: %s' % self.spec.name
             print 'state: %s' % self.state
 
-        #DEB
+        #DEBUG
         if self.obj:
             self.obj.update(**data)
         else:
@@ -208,11 +225,15 @@ class WorkflowDB(Workflow):
                     self, self.spec.get_task_spec(task_obj.alias_name), state=None)
                 task_list[task_obj.id].deserialize(task_obj)
 
-            for a in task_list:
-                print a, task_list[a]
-            print "----------------------------------------------"
-            print task_list[start_task_obj.id]
-            print "----------------------------------------------"
+            #DEBUG -------------------------
+            if __DEBUG__:
+                for a in task_list:
+                    print a, task_list[a]
+                print "----------------------------------------------"
+                print task_list[start_task_obj.id]
+                print "----------------------------------------------"
+            #DEBUG -------------------------
+
             self.task_tree = task_list[start_task_obj.id]
 
             print self.task_tree
