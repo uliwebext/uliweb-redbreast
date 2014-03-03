@@ -77,6 +77,7 @@ class TaskTrans(object):
             if self.operator:
                 data.update({'created_user': self.operator})
 
+            print data
             obj = WFTrans(**data)
             obj.save()
             self.obj = obj
@@ -120,11 +121,16 @@ class TaskDB(Task):
                 'spec_name'     : self.get_spec_name(),
                 'alias_name'    : self.get_name(),
                 'desc'          : self.get_desc(),
-                'uuid'      : self.uuid,
+                'uuid'          : self.uuid,
             }
             if self.obj:
+                if self.operator:
+                    data.update({'modified_user': self.operator})
                 self.obj.update(**data)
             else:
+                if self.operator:
+                    data.update({'modified_user': self.operator})
+                    data.update({'created_user': self.operator})
                 self.obj = WFTask(**data)
             self.obj.save()
 
@@ -139,14 +145,14 @@ class TaskDB(Task):
 class WorkflowDB(Workflow):
 
     @staticmethod
-    def load(workflow_id):
+    def load(workflow_id, operator=None):
         from uliweb.orm import get_model
         from redbreast.core.spec import CoreWFManager
         WF = get_model('workflow')
         obj = WF.get(WF.c.id == workflow_id)
         if obj:
             workflow_spec = CoreWFManager.get_workflow_spec(obj.spec_name)
-            instance = WorkflowDB(workflow_spec, deserializing=True)
+            instance = WorkflowDB(workflow_spec, operator=operator, deserializing=True)
             instance.deserialize(obj)
             instance.deserializing = False
             return instance
@@ -222,8 +228,8 @@ class WorkflowDB(Workflow):
             'state'         : self.state,
             'data'          : Serial.dump(self.data),
             'desc'          : self.spec.desc,
-
         }
+
 
         #DEBUG -------------------------
         if __DEBUG__:
@@ -235,8 +241,13 @@ class WorkflowDB(Workflow):
 
         #DEBUG
         if self.obj:
+            if self.operator:
+                data.update({'modified_user': self.operator})
             self.obj.update(**data)
         else:
+            if self.operator:
+                data.update({'modified_user': self.operator})
+                data.update({'created_user': self.operator})
             self.obj = WF(**data)
         self.obj.save()
 

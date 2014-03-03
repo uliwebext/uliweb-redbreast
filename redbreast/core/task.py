@@ -92,22 +92,24 @@ class Task(object):
         if parent:
             self.parents.append(parent)
 
+        self.data = {}
+
+        #data for deliver
+        self.deliver_msg = None
+        self.deliver_from_msg = kwargs.get('message', None)
+        self.operator = kwargs.get('operator', None)
+        self.next_tasks = []
+
+        #state
         self._state = None
         self.state_history = []
         self.state = state
-
-        self.data = {}
 
         self.children = []
         if parent is not None:
             for p in self.parents:
                 p.add_child(self)
 
-        #data for deliver
-        self.deliver_msg = None
-        self.deliver_from_msg = kwargs.get('message', None)
-        self.operator = kwargs.get('operator', None)
-        self._next_tasks = []
 
     def __iter__(self):
         return Task.Iterator(self)
@@ -209,11 +211,12 @@ class Task(object):
     def do_execute(self, transfer=False):
         return self.spec.do_execute(self, self.workflow, transfer=transfer)
 
-    def deliver(self, message=None, next_tasks=[], operator=None, async=True):
-        self.state = Task.READY
+    def deliver(self, message=None, next_tasks=[], async=True):
         self.deliver_msg = message
-        self.operator = operator
-        self._next_tasks = next_tasks
+        self.operator = self.workflow.operator
+        self.next_tasks = next_tasks
+
+        self.state = Task.READY
 
         if async == False:
             return self.do_execute(transfer=True)

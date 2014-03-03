@@ -118,7 +118,8 @@ class TaskSpec(object):
                     if new_ret == YES or (task_spec.name in new_ret):
 
                         new_task = workflow.Task(workflow,
-                            task_spec, parent=task, message=task.deliver_msg)
+                            task_spec, parent=task, operator=task.operator,
+                            message=task.deliver_msg)
                         #new_task.add_parent(task)
                         #Test ready for every new added child
                         task_spec.is_ready(new_task, workflow)
@@ -188,7 +189,7 @@ class ChoiceTask(TaskSpec):
 
     def choose(self, data, task, workflow):
         result = []
-        next_tasks = task._next_tasks
+        next_tasks = task.next_tasks
         output_spec_names = [task_spec.name for task_spec in task.spec.outputs]
 
         for next_task in next_tasks:

@@ -69,10 +69,7 @@ class Workflow(EventDispatcher):
     def is_multiple_start(self):
         return self.spec.is_multiple_start
 
-    def start(self, start=None, operator=None):
-
-        self.operator = operator
-
+    def start(self, start=None):
         #multipe start tasks
         if self.spec.is_multiple_start:
             if not start :
@@ -118,12 +115,12 @@ class Workflow(EventDispatcher):
         msg = 'A task with the given task_id (%s) was not found' % task_id
         raise WFException(self.spec, msg)
 
-    def deliver(self, task_id, message=None, next_tasks=[], operator=None, async=True):
+    def deliver(self, task_id, message=None, next_tasks=[], async=True):
         if task_id is None:
             raise WFException(self.spec, 'task_id is None')
         for task in self.task_tree:
             if task.uuid == task_id:
-                return task.deliver(message=message, next_tasks=next_tasks, operator=operator, async=async)
+                return task.deliver(message=message, next_tasks=next_tasks, async=async)
         msg = 'A task with the given task_id (%s) was not found' % task_id
         raise WFException(self.spec, msg)
 

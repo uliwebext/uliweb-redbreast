@@ -146,8 +146,9 @@ class MoniterView(object):
             cond = WFTrans.c.to_task == obj.id
             items = []
             for trans in WFTrans.filter(cond):
-                items.append(u"%s -> 由 %s 在 %s 流转, %s" %
-                    (trans.from_task.desc, trans.created_user, trans.created_date, trans.id))
+                if trans.from_task:
+                    items.append(u"[%s] -> 由 %s 在 %s 流转" %
+                        (trans.from_task.desc, trans.created_user, trans.created_date))
 
             if len(items)>0:
                 return "<br/>".join(items)
@@ -160,8 +161,9 @@ class MoniterView(object):
             cond = WFTrans.c.from_task == obj.id
             items = []
             for trans in WFTrans.filter(cond):
-                items.append(u"-> %s 由 %s 在 %s 流转, %s" %
-                    (trans.to_task.desc, trans.created_user, trans.created_date, trans.id))
+                if trans.to_task:
+                    items.append(u"-> [%s] 由 %s 在 %s 流转" %
+                        (trans.to_task.desc, trans.created_user, trans.created_date))
 
             if len(items)>0:
                 return "<br/>".join(items)

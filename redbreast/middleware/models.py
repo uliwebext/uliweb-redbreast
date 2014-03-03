@@ -34,9 +34,9 @@ class Workflow_Task(Model):
     alias_name = Field(CHAR, verbose_name='活动名称', max_length=255)
     state = Field(int, verbose_name='活动状态', default=1, choices=get_var('PARA/WF_TASK_STATUS'))
     created_date = Field(datetime.datetime, verbose_name='创建时间', auto_now_add=True)
-    created_user = Reference('user', verbose_name='创建人', default=get_modified_user, auto_add=True)
+    created_user = Reference('user', verbose_name='创建人')
     modified_date = Field(datetime.datetime, verbose_name='修改时间', auto_now=True, auto_now_add=True)
-    modified_user = Reference('user', verbose_name='修改人', default=get_modified_user, auto=True, auto_add=True)
+    modified_user = Reference('user', verbose_name='修改人')
     data = Field(PICKLE, verbose_name='工作流活动绑定数据')
     uuid = Field(CHAR, verbose_name='UUID', max_length=255)
 
@@ -50,7 +50,7 @@ class Workflow_Trans(Model):
     from_name = Field(CHAR, verbose_name='前点名称', max_length=255)
     to_name = Field(CHAR, verbose_name='终点名称', max_length=255)
     created_date = Field(datetime.datetime, verbose_name='创建时间', auto_now_add=True)
-    created_user = Reference('user', verbose_name='创建人', default=get_modified_user, auto_add=True)
+    created_user = Reference('user', verbose_name='创建人')
     message = Field(CHAR, verbose_name='流转意见', max_length=255)
     type = Field(int, verbose_name='流向类型', choices=get_var('PARA/WF_TRANS_TYPE'), default=2)
 

@@ -3,6 +3,7 @@
 from uliweb import expose, functions, settings, decorators
 from uliweb.i18n import gettext_lazy as _
 from helper import ApproveHelper
+from uliweb.contrib.flashmessage import flash
 import datetime
 
 def __begin__():
@@ -94,8 +95,6 @@ class ApproveView(object):
     @decorators.check_permission('ApproveWorkflowCreate')
     def add(self):
         from uliweb.utils.generic import AddView
-
-
         helper = ApproveHelper()
 
         def pre_save(data):
@@ -111,6 +110,86 @@ class ApproveView(object):
 
         result = view.run()
         return result
+
+    def edit(self, id):
+        from uliweb.utils.generic import EditView
+
+        obj = self.model.get(int(id))
+        helper = ApproveHelper()
+        helper.bind(obj, get_workflow=True)
+        tasks = helper.get_active_tasks()
+        if len(tasks) == 1:
+            task_id = tasks[0].get_unique_id()
+            fields = [{'name': 'trans_message', 'verbose_name':'流转意见'}]
+
+            if helper.has_deliver_permission(tasks[0], request.user):
+
+                task_name = tasks[0].get_name()
+
+                all_fields = ["title", "content", "submitter", "submitter_date",
+                    "group_opinion","group_user", "group_date",
+                    "depart_opinion","depart_user", "depart_date",
+                    "manager_opinion","manager_user", "manager_date",
+                    "final_opinion","final_user", "final_date"]
+
+                fill_fields = []
+
+                if task_name == "Create":
+                    fields = all_fields[0:2]
+                    static_fields = []
+                    fill_fields = ["submitter", "submitter_date"]
+                    layout = [
+                        ('title'),
+                        ('content'),
+                    ]
+
+                if task_name == "Group":
+                    fields = all_fields[0:5]
+                    static_fields = all_fields[0:4]
+                    fill_fields = ["group_user", "group_date"]
+                    layout = [
+                        ('title'),
+                        ('content'),
+                        ['---']
+                        ["submitter", "submitter_date"],
+                        ("group_opinion")
+                    ]
+
+                if task_name == "Depart":
+                    fields = all_fields[0:8]
+                    static_fields = all_fields[0:7]
+                    fill_fields = ["depart_user", "depart_date"]
+
+                if task_name == "Boss" or task_name == "Manager":
+                    fields = all_fields[0:11]
+                    static_fields = all_fields[0:10]
+                    fill_fields = ["manager_user", "manager_date"]
+
+                if task_name == "Checker":
+                    fields = all_fields[0:14]
+                    static_fields = all_fields[0:13]
+                    fill_fields = ["final_user", "final_date"]
+
+                if task_name == "Archiver":
+                    fields = all_fields[0:16]
+                    static_fields = all_fields[0:16]
+
+                def pre_save(obj, data):
+                    if fill_fields:
+                        data[fill_fields[0]] = request.user.id
+                        data[fill_fields[1]] = datetime.datetime.now()
+
+                view = EditView(self.model, url_for(self.__class__.view, id=id),
+                    fields=fields, static_fields = static_fields,
+                    obj=obj, pre_save=pre_save, layout=layout)
+                return view.run()
+            else:
+                flash(u"您没有权限访问编辑填写功能。")
+                return redirect(url_for(ApproveView.view, id=id))
+        else:
+            flash(u"您没有权限访问编辑填写功能。")
+            return redirect(url_for(ApproveView.view, id=id))
+
 
     def view(self, id):
         from uliweb.utils.generic import DetailView

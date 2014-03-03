@@ -5,25 +5,27 @@ from redbreast.middleware import Workflow, Task
 class ApproveHelper(object):
 
     def __init__(self):
+        from uliweb import request
         self.init_workflow_engine()
         self.WORKFLOW_NAME = "ApproveWorkflow"
 
         self._approve = None
         self._workflow = None
+        self.operator = request.user
 
     def bind(self, approve, get_workflow=False):
         self._approve = approve
 
         if get_workflow and self._approve.workflow:
             if not self._workflow:
-                self._workflow = Workflow.load(self._approve._workflow_)
+                self._workflow = Workflow.load(self._approve._workflow_, operator=self.operator)
 
     def init_workflow_engine(self):
         CoreWFManager.use_database_storage()
 
     def create_workflow(self, start=True):
         spec = CoreWFManager.get_workflow_spec(self.WORKFLOW_NAME)
-        workflow = Workflow(spec)
+        workflow = Workflow(spec, operator=self.operator)
 
         workflow.set_data({'table': 'approve', 'obj_id': self._approve.id})
 
@@ -64,9 +66,4 @@ class ApproveHelper(object):
         return False
 
 
-    def get_workflow_tasklog(self):
-        pass
-
-    def get_translog(self):
-        pass
 

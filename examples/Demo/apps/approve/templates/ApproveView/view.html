@@ -7,6 +7,9 @@
         <div class="box-body">
             {{embed detailview}}
         </div>
+        {{if show_deliver_form:}}
+            <a href="/approve/edit/{{=obj.id}}" class="btn btn-primary">编辑</a>
+        {{pass}}
     </div>
 
     <div class="box">

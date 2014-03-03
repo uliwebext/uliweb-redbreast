@@ -37,6 +37,12 @@ class Approve(Model):
             'content',
         ]
 
+    class EditForm:
+        fields = [
+            'title',
+            'content',
+        ]
+
     class Table:
         fields = [
             {'name':'title', 'width':250, 'sortable':True},
