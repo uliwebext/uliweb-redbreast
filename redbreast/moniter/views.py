@@ -30,9 +30,9 @@ class MoniterView(object):
     def workflows(self):
         from uliweb.utils.generic import ListView, get_sort_field
 
-        fields = ['id', 
-            {'name':'spec_name','width':200}, 'desc', 'state', 
-            'created_user', 'created_date', 
+        fields = ['id',
+            {'name':'spec_name','width':200}, 'desc', 'state',
+            'created_user', 'created_date',
             'modified_user', 'modified_date']
 
         def id(value, obj):
@@ -40,7 +40,7 @@ class MoniterView(object):
             return str(Tag('a', ("%04d"%obj.id), href='/redbreast/workflow/%d' % obj.id))
 
         fields_convert_map = {'id': id}
-        view = ListView(self.wf_model, 
+        view = ListView(self.wf_model,
             fields_convert_map=fields_convert_map, fields=fields)
 
         if 'data' in request.values:
@@ -53,11 +53,11 @@ class MoniterView(object):
     def workflow(self, id):
         from uliweb.utils.generic import DetailView, ListView
 
-        obj = self.wf_model.get(id)
+        obj = self.wf_model.get(int(id))
 
         def get_wf_detail():
             fields1 = ['id', 'spec_name',
-                'desc', 'state', 'created_user', 'created_date', 
+                'desc', 'state', 'created_user', 'created_date',
                 'modified_user', 'modified_date']
 
             layout1 = [
@@ -70,12 +70,12 @@ class MoniterView(object):
 
             view1 = DetailView(self.wf_model, obj=obj, fields=fields1, layout=layout1)
             result1 = view1.run()
-            return result1['view']            
+            return result1['view']
 
         fields2 = [ 'id',
             {'name': 'spec_name', 'width':200}, 'desc',
-             'state', 
-            'alias_name', 'created_user', 'created_date', 'modified_user', 'modified_date']   
+             'state',
+            'alias_name', 'created_user', 'created_date', 'modified_user', 'modified_date']
 
         cond = self.wftask_model.c.workflow == obj.id
         fields_convert_map = {'id': task_id}
@@ -86,7 +86,7 @@ class MoniterView(object):
             return json(view2.json())
         else:
             result2 = view2.run(head=True, body=False)
-            result2.update({'table':view2, 'detailview': get_wf_detail()})
+            result2.update({'table':view2, 'detailview': get_wf_detail(), 'workflow': obj})
             return result2
 
     def tasks(self):
@@ -95,9 +95,9 @@ class MoniterView(object):
 
         fields = [ 'id',
             {'name': 'spec_name', 'width':200}, 'desc',
-             'state', 
-            {'name': 'workflow', 'width':200}, 
-            'alias_name', 'created_user', 'created_date', 'modified_user', 'modified_date']   
+             'state',
+            {'name': 'workflow', 'width':200},
+            'alias_name', 'created_user', 'created_date', 'modified_user', 'modified_date']
 
         def workflow(value, obj):
             from uliweb.core.html import Tag
@@ -105,7 +105,7 @@ class MoniterView(object):
             return str(Tag('a', display, href='/redbreast/workflow/%d' % obj.workflow.id))
 
         fields_convert_map = {'workflow':workflow, 'id': task_id}
-        view = ListView(self.wftask_model, 
+        view = ListView(self.wftask_model,
             fields_convert_map=fields_convert_map, fields=fields)
 
         if 'data' in request.values:
@@ -118,16 +118,16 @@ class MoniterView(object):
     def task(self, id):
         from uliweb.utils.generic import DetailView
 
-        obj = self.wftask_model.get(id)
+        obj = self.wftask_model.get(int(id))
 
         fields = [ 'id', 'spec_name', 'desc',
              'state', 'workflow',
-             'alias_name', 
-             'created_user', 'created_date', 
+             'alias_name',
+             'created_user', 'created_date',
              'modified_user', 'modified_date',
              {'name': 'inflows', 'verbose_name': '流入'},
              {'name': 'outflows',  'verbose_name': '流出'},
-             ]           
+             ]
 
         layout = [
                 '-- 基本信息 --',
@@ -146,7 +146,7 @@ class MoniterView(object):
             cond = WFTrans.c.to_task == obj.id
             items = []
             for trans in WFTrans.filter(cond):
-                items.append(u"%s -> 由 %s 在 %s 流转, %s" % 
+                items.append(u"%s -> 由 %s 在 %s 流转, %s" %
                     (trans.from_task.desc, trans.created_user, trans.created_date, trans.id))
 
             if len(items)>0:
@@ -160,7 +160,7 @@ class MoniterView(object):
             cond = WFTrans.c.from_task == obj.id
             items = []
             for trans in WFTrans.filter(cond):
-                items.append(u"-> %s 由 %s 在 %s 流转, %s" % 
+                items.append(u"-> %s 由 %s 在 %s 流转, %s" %
                     (trans.to_task.desc, trans.created_user, trans.created_date, trans.id))
 
             if len(items)>0:
@@ -169,10 +169,10 @@ class MoniterView(object):
                 return ''
 
         fields_convert_map = {'inflows':inflows, 'outflows': outflows}
-        view = DetailView(self.wftask_model, obj=obj, 
+        view = DetailView(self.wftask_model, obj=obj,
             fields_convert_map=fields_convert_map,
             fields=fields, layout=layout)
         result = view.run()
-        return result             
+        return result
 
 

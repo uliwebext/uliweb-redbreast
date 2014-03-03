@@ -52,4 +52,5 @@ class Workflow_Trans(Model):
     created_date = Field(datetime.datetime, verbose_name='创建时间', auto_now_add=True)
     created_user = Reference('user', verbose_name='创建人', default=get_modified_user, auto_add=True)
     message = Field(CHAR, verbose_name='流转意见', max_length=255)
+    type = Field(int, verbose_name='流向类型', choices=get_var('PARA/WF_TRANS_TYPE'), default=2)
 

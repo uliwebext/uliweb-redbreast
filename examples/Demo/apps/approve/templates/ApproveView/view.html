@@ -12,14 +12,17 @@
     <div class="box">
         <h2>工作流信息</h2>
         <div class="box-body">
-            <b>工作流状态:</b> {{=state}}
+            <b>工作流状态:</b> {{=workflow.get_state_name()}}
             <br/>
-            {{if task_desc:}} 
+            {{if task_desc:}}
                 <b>当前活动:</b> {{=task_desc}}
             {{pass}}
+
         </div>
     </div>
-    
+
+    {{include "inc_workflow_trans.html"}}
+
     {{if show_deliver_form:}}
     <div class="box">
         <h2>流转</h2>

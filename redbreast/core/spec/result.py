@@ -3,53 +3,53 @@ class WFResult(object):
         super(WFResult, self).__init__()
         self.type = type
         self.msg = None
-        
+
     def __eq__(self, result):
         if result == True:
             result = YES
         if result == False:
             result = NO
         return self.type == result.type
-    
+
     def __call__(self, msg=None):
         ret = WFResult()
         ret.type = self.type
         ret.msg = msg
         return ret
-    
+
     def __str__(self):
         if self.msg:
             return "%s - %s" % (self.type, self.msg)
         return self.type
-    
+
 class WFResultTask(WFResult):
 
     def __init__(self, type="TASK", msg=""):
         super(WFResultTask, self).__init__(type, msg)
         self.list = set()
-    
+
     def __call__(self, *args):
         ret = WFResultTask()
         ret.type = self.type
         ret.list = set(args)
-        return ret   
-    
+        return ret
+
     def union(self, result_list):
         ret = WFResultTask(type="TASK")
         ret.list = self.list.copy()
-        if isinstance(result_list, str):
+        if isinstance(result_list, str) or isinstance(result_list, unicode):
             ret.list.add(result_list)
         if isinstance(result_list, WFResultTask):
             ret.list = ret.list.union(result_list.list)
         if isinstance(result_list, list) or isinstance(result_list, tuple):
             for task in result_list:
-                if isinstance(task, str):
+                if isinstance(task, str) or isinstance(task, unicode):
                     ret.list.add(task)
                 if isinstance(task, WFResultTask):
                     ret.list = ret.list.union(task.list)
-        
+
         return ret
-    
+
     def __contains__(self, task_name):
         return task_name in self.list
 

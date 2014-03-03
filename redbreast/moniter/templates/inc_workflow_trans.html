@@ -1,0 +1,9 @@
+
+{{from redbreast.ui.utils import *}}
+{{link "redbreast/ui/layout.css"}}
+<div class="box">
+    <h2>流转信息</h2>
+    <div class="box-body">
+        {{<<WorkflowUIUtils.print_workflow_trans(workflow, layout_class=WFTransBoxLayout)}}
+    </div>
+</div>

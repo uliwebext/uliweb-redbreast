@@ -14,9 +14,9 @@ class Task(object):
     EXECUTING =  4
     EXECUTED  =  8
     COMPLETED = 16
-    
+
     # active --> ready()  --> ready
-    # ready --> execute() 
+    # ready --> execute()
     # if async ---> executing
     #    async-callback --> executed
     # if sync --> executed --> route() --> completed
@@ -29,60 +29,60 @@ class Task(object):
         EXECUTED:  'EXECUTED',
         COMPLETED: 'COMPLETED',
     }
-    
+
     state_fire_event_names = {
-        ACTIVE:    'enter',
-        READY:     'ready',
-        EXECUTING: 'executing',
-        EXECUTED:  'executed',
-        COMPLETED: 'completed',
+        ACTIVE:    'task:enter',
+        READY:     'task:ready',
+        EXECUTING: 'task:executing',
+        EXECUTED:  'task:executed',
+        COMPLETED: 'task:completed',
     }
-    
+
     class Iterator(object):
         def __init__(self, current, filter=None):
             self.filter = filter
             self.path = [current]
-    
+
         def __iter__(self):
             return self
-    
+
         def _next(self):
             if len(self.path) == 0:
                 raise StopIteration()
-            
+
             current = self.path[-1]
             if current.children:
                 self.path.append(current.children[0])
-                 
+
                 if self.filter is not None and current.state & self.filter == 0:
                     return None
                 return current
-            
+
             while True:
-                
+
                 old_child = self.path.pop(-1)
-                
+
                 if len(self.path) == 0:
                     break;
-                
+
                 parent = self.path[-1]
                 pos = parent.children.index(old_child)
                 if len(parent.children) > (pos + 1):
                     self.path.append(parent.children[pos + 1])
                     break
-            
+
             if self.filter is not None and current.state & self.filter == 0:
                 return None
-            
+
             return current
-    
+
         def next(self):
             while True:
                 next = self._next()
                 if next is not None:
                     return next
-    
-    
+
+
     def __init__(self, workflow, task_spec, parent=None, state=ACTIVE, **kwargs):
 
         self.uuid = uuid4()
@@ -91,29 +91,30 @@ class Task(object):
         self.parents = []
         if parent:
             self.parents.append(parent)
-            
+
         self._state = None
         self.state_history = []
         self.state = state
-        
+
         self.data = {}
-        
+
         self.children = []
         if parent is not None:
             for p in self.parents:
                 p.add_child(self)
 
         #data for deliver
-        self._to_message = None
-        self._from_message = kwargs.get('message', None)
+        self.deliver_msg = None
+        self.deliver_from_msg = kwargs.get('message', None)
+        self.operator = kwargs.get('operator', None)
         self._next_tasks = []
-            
+
     def __iter__(self):
         return Task.Iterator(self)
-            
+
     def _getstate(self):
         return self._state
-    
+
     def _setstate(self, value):
         if self._state == value:
             return
@@ -121,23 +122,26 @@ class Task(object):
         self._state = value
         self.state_history.append(value)
         self.last_state_change = time.time()
-        
+
         map = {}
-        
+
         #pubsub
         event_type = self.state_fire_event_names.get(self.state, None)
-        
+
         if event_type:
+            # spec pubsub
             self.workflow.spec.fire(event_type, task=self, workflow=self.workflow)
+            # instance pubsub
             self.workflow.fire(event_type, task=self, workflow=self.workflow)
-            self.workflow.fire("state_changed", task=self, workflow=self.workflow)
-        
-        LOG.debug("Moving '%s' from %s to %s" % 
+            # extra instance pubsub
+            self.workflow.fire("task:state_changed", task=self, workflow=self.workflow)
+
+        LOG.debug("Moving '%s' from %s to %s" %
             (self.get_name(), old, self.get_state_name()))
-            
+
     def _delstate(self):
         del self._state
-    
+
     state = property(_getstate, _setstate, _delstate, "State property.")
 
     def get_alldata(self):
@@ -164,13 +168,13 @@ class Task(object):
 
     def get_unique_id(self):
         return self.uuid
-    
+
     def get_state_name(self):
         return self.state_names.get(self.state, None)
-    
+
     def get_name(self):
         return self.spec.name
-    
+
     def get_spec_name(self):
         return self.spec.get_spec_name()
 
@@ -178,37 +182,38 @@ class Task(object):
         return self.spec.get_desc()
 
     def get_next_tasks(self):
-        return [(task.get_spec_name(), task.get_desc()) for task in self.spec.outputs]
+        return [(task.name, task.get_desc()) for task in self.spec.outputs]
 
     def add_parent(self, parent):
         self.parents.append(parent)
-            
+
     def add_child(self, child):
         self.children.append(child)
-        self.workflow.fire("trans:add", from_task=self, to_task=child, workflow=self.workflow,)
+        self.workflow.fire("task:connect", from_task=self, to_task=child, workflow=self.workflow,)
 
     def remove_parent(self, parent):
         self.parents.remove(parent)
-        
+
     def remove_child(self, child):
         self.children.remove(child)
-        self.workflow.fire("trans:remove", from_task=self, to_task=child, workflow=self.workflow,)
-        
+        self.workflow.fire("task:disconnect", from_task=self, to_task=child, workflow=self.workflow,)
+
     def kill(self):
         for p in self.parents:
             p.remove_child(self)
         self.parents = []
-        
+
     def is_ready(self):
         return self.spec.is_ready(self, self.workflow)
-    
+
     def do_execute(self, transfer=False):
         return self.spec.do_execute(self, self.workflow, transfer=transfer)
 
-    def deliver(self, message=None, next_tasks=[], async=True):
+    def deliver(self, message=None, next_tasks=[], operator=None, async=True):
         self.state = Task.READY
-        self._to_message = message
-        self._next_tasks = []
+        self.deliver_msg = message
+        self.operator = operator
+        self._next_tasks = next_tasks
 
         if async == False:
             return self.do_execute(transfer=True)
@@ -221,11 +226,11 @@ class Task(object):
         for p in self.parents:
             if self.parent == p:
                 return True
-            
+
         for p in self.parents:
             if p.is_descendant_of(parent):
                 return True
-    
+
     def find(self, task_spec):
         if self.spec == task_spec:
             return self
@@ -240,7 +245,7 @@ class Task(object):
             self.spec.name,
             self.get_state_name(),
             hex(id(self)))
-    
+
     def get_dump(self, indent=0, recursive=True):
         dbg  = (' ' * indent * 2)
         dbg += ' %s '   % (self.get_name())
@@ -250,7 +255,7 @@ class Task(object):
             for child in self.children:
                 dbg += '\n' + child.get_dump(indent + 1)
         return dbg
-    
+
     def dump(self, indent=0):
         print self.get_dump()
-                    
+

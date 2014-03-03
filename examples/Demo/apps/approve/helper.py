@@ -35,9 +35,12 @@ class ApproveHelper(object):
 
         return workflow
 
+    def get_workflow(self):
+        return self._workflow
+
     def deliver(self, message, next_tasks=[]):
         if self._workflow and self._current_task:
-            return self._workflow.deliver(self._current_task.uuid, 
+            return self._workflow.deliver(self._current_task.uuid,
                 message=message, next_tasks=next_tasks, async=False)
 
     def get_active_tasks(self):
@@ -48,11 +51,6 @@ class ApproveHelper(object):
         else:
             self._current_task = None
         return tasks
-
-    def get_workflow_state(self):
-        if self._workflow:
-            return self._workflow.get_state_name()
-        return ""
 
     def has_deliver_permission(self, task, user):
         from uliweb import settings

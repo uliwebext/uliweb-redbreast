@@ -1,12 +1,15 @@
 from redbreast.core import Workflow, Task
 
-__DEBUG__ = True
+__DEBUG__ = False
 
 class TaskTrans(object):
+    CREATE     =  1
+    DELIVER    =  2
+    ARCHIVE    =  3
 
     @staticmethod
-    def save(from_task, to_task, workflow):
-        trans_obj = TaskTrans(from_task, to_task, workflow)
+    def save(from_task, to_task, workflow, message, operator):
+        trans_obj = TaskTrans(from_task, to_task, workflow, message, operator)
         trans_obj.serialize()
 
     @staticmethod
@@ -14,10 +17,18 @@ class TaskTrans(object):
         trans_obj = TaskTrans(from_task, to_task, workflow)
         trans_obj.kill()
 
-    def __init__(self, from_task, to_task, workflow):
+    def __init__(self, from_task, to_task, workflow, message, operator):
         self.from_task = from_task
         self.to_task = to_task
         self.workflow = workflow
+        self.message = message
+        self.operator = operator
+        if from_task and to_task:
+            self.type = TaskTrans.DELIVER
+        elif not from_task:
+            self.type = TaskTrans.CREATE
+        elif not to_task:
+            self.type = TaskTrans.ARCHIVE
         self.obj = None
 
     def get_serialize_obj(self):
@@ -25,12 +36,19 @@ class TaskTrans(object):
             from uliweb.orm import get_model
             WFTrans = get_model('workflow_trans')
             cond = WFTrans.c.workflow == self.workflow.get_id()
-            cond = (WFTrans.c.from_task == self.from_task.get_id()) & cond
-            cond = (WFTrans.c.to_task == self.to_task.get_id()) & cond
+            if self.from_task:
+                cond = (WFTrans.c.from_task == self.from_task.get_id()) & cond
+            else:
+                cond = (WFTrans.c.from_task == None) & cond
+            if self.to_task:
+                cond = (WFTrans.c.to_task == self.to_task.get_id()) & cond
+            else:
+                cond = (WFTrans.c.to_task == None) & cond
 
             obj = WFTrans.get(cond)
             if obj:
                 self.obj = obj
+
         return self.obj
 
     def serialize(self):
@@ -40,11 +58,25 @@ class TaskTrans(object):
             WFTrans = get_model('workflow_trans')
             data = {
                 'workflow' : self.workflow.get_id(),
-                'from_task': self.from_task.get_id(),
-                'to_task'  : self.to_task.get_id(),
-                'from_name': self.from_task.get_name(),
-                'to_name'  : self.to_task.get_name(),
+                'message'  : self.message,
+                'type'     : self.type,
             }
+
+            if self.from_task:
+                data.update({
+                    'from_task': self.from_task.get_id(),
+                    'from_name': self.from_task.get_desc(),
+                })
+
+            if self.to_task:
+                data.update({
+                    'to_task'  : self.to_task.get_id(),
+                    'to_name'  : self.to_task.get_desc(),
+                })
+
+            if self.operator:
+                data.update({'created_user': self.operator})
+
             obj = WFTrans(**data)
             obj.save()
             self.obj = obj
@@ -64,7 +96,7 @@ class TaskDB(Task):
     def __init__(self, workflow, task_spec, parent=None, state=Task.ACTIVE, **kwargs):
         self.obj = None
         self.killed = False
-        super(TaskDB, self).__init__(workflow, task_spec, parent, state, **kwargs)
+        super(TaskDB, self).__init__(workflow, task_spec, parent=parent, state=state, **kwargs)
 
     def kill(self):
         super(TaskDB, self).kill()
@@ -131,28 +163,35 @@ class WorkflowDB(Workflow):
 
         def task_save(event):
             if not event.target.deserializing:
-                print "-----------------"
                 task = event.task
                 task.serialize()
 
-                print task
-                print task.state
-
         def trans_add(event):
             if not event.target.deserializing:
-                TaskTrans.save(event.from_task, event.to_task, event.workflow)
+                TaskTrans.save(event.from_task,
+                    event.to_task, event.workflow,
+                    event.from_task.deliver_msg,
+                    event.from_task.operator)
 
         def trans_remove(event):
             if not event.target.deserializing:
                 TaskTrans.remove(event.from_task, event.to_task, event.workflow)
 
-        self.on("state_changed", task_save)
-        self.on("trans:add", trans_add)
-        self.on("trans:remove", trans_remove)
+        self.on("task:state_changed"    , task_save)
+        self.on("task:connect"          , trans_add)
+        self.on("task:disconnect"       , trans_remove)
 
         def workflow_save(event):
             if not event.target.deserializing:
                 wf = event.workflow
+
+                if wf.state == Workflow.RUNNING:
+                    TaskTrans.save(None, wf.task_tree, wf, None, wf.task_tree.operator)
+
+                if wf.state == Workflow.FINISHED:
+                    TaskTrans.save(wf.finish_task, None, wf, wf.finish_task.deliver_msg,
+                        wf.finish_task.operator)
+
                 wf.serialize()
 
         self.on("workflow:state_changed", workflow_save)
@@ -236,10 +275,9 @@ class WorkflowDB(Workflow):
 
             self.task_tree = task_list[start_task_obj.id]
 
-            print self.task_tree
-
             for trans_obj in obj.trans.order_by(WFTrans.c.id):
                 from_task_id = trans_obj._from_task_
                 to_task_id = trans_obj._to_task_
-                task_list[from_task_id].children.append(task_list[to_task_id])
-                task_list[to_task_id].parents.append(task_list[from_task_id])
+                if from_task_id and to_task_id:
+                    task_list[from_task_id].children.append(task_list[to_task_id])
+                    task_list[to_task_id].parents.append(task_list[from_task_id])

@@ -18,30 +18,30 @@ def get_deliver_form(from_task, to_tasks):
     if len(to_tasks) == 1:
         spec_name, desc = to_tasks[0]
         class DeliverForm(Form):
-            form_buttons = [Button(value='流转到%s' % desc, _class="btn btn-primary", 
+            form_buttons = [Button(value='流转到%s' % desc, _class="btn btn-primary",
                 type='button', id='btnDeliver')]
 
             trans_message = TextField(label='流转意见', html_attrs={'style':'width:80%'})
-            from_task_id = HiddenField(label='id', 
+            from_task_id = HiddenField(label='id',
                 html_attrs={'style':'display:none'}, default=from_task.get_unique_id())
     elif len(to_tasks)>1:
         from uliweb.form import SelectField
         choices = to_tasks
         class DeliverForm(Form):
-            form_buttons = [Button(value='流转', _class="btn btn-primary", 
+            form_buttons = [Button(value='流转', _class="btn btn-primary",
                 type='button', id='btnDeliver')]
 
             trans_message = TextField(label='流转意见', html_attrs={'style':'width:80%'}, required=True)
             to_tasks = SelectField(label='流转给', choices=choices, required=True)
-            from_task_id = HiddenField(label='id', 
+            from_task_id = HiddenField(label='id',
                 html_attrs={'style':'display:none'}, default=from_task.get_unique_id())
     elif len(to_tasks) == 0:
         class DeliverForm(Form):
-            form_buttons = [Button(value='办结', _class="btn btn-primary", 
+            form_buttons = [Button(value='办结', _class="btn btn-primary",
                 type='button', id='btnDeliver')]
 
             trans_message = TextField(label='办结意见', html_attrs={'style':'width:80%'}, required=True)
-            from_task_id = HiddenField(label='id', 
+            from_task_id = HiddenField(label='id',
                 html_attrs={'style':'display:none'}, default=from_task.get_unique_id())
 
     return DeliverForm()
@@ -131,9 +131,12 @@ class ApproveView(object):
 
         helper = ApproveHelper()
         helper.bind(obj, get_workflow=True)
-        state = helper.get_workflow_state()
 
-        data = {'detailview': result['view'], 'state': state, 'obj': result['object']}
+        data = {
+            'detailview': result['view'],
+            'obj': result['object'],
+            'workflow': helper.get_workflow(),
+        }
 
         tasks = helper.get_active_tasks()
 
@@ -157,7 +160,7 @@ class ApproveView(object):
                     'show_deliver_form':False,
                     'task_desc': tasks[0].get_desc(),
                     'task_spec_name': tasks[0].get_spec_name()
-                })                
+                })
 
         else:
             data.update({
@@ -171,7 +174,6 @@ class ApproveView(object):
         obj = self.model.get(int(id))
         helper = ApproveHelper()
         helper.bind(obj, get_workflow=True)
-        state = helper.get_workflow_state()
         tasks = helper.get_active_tasks()
 
         if len(tasks) == 1:
@@ -190,10 +192,10 @@ class ApproveView(object):
 
                 helper.deliver(trans_message, next_tasks=[to_tasks])
             else:
-                helper.deliver(trans_message)   
-            
-            
-            return json({'success': True})         
+                helper.deliver(trans_message)
+
+
+            return json({'success': True})
         else:
             return json({'success': False, 'message': '无效的请求，请求的活动可能已经被他人流转。'})
 

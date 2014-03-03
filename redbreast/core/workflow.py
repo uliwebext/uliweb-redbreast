@@ -34,10 +34,12 @@ class Workflow(EventDispatcher):
         self.parent_workflow = kwargs.get('parent', self)
 
 
-        self.task_tree = None
+        self.task_tree = None     #start-task
+        self.finish_task = None   #end-task
         self.last_task = None
 
         self.state = self.CREATED
+        self.operator = kwargs.get("operator", None)
 
         #pubsub
         if self.spec :
@@ -67,7 +69,10 @@ class Workflow(EventDispatcher):
     def is_multiple_start(self):
         return self.spec.is_multiple_start
 
-    def start(self, start=None):
+    def start(self, start=None, operator=None):
+
+        self.operator = operator
+
         #multipe start tasks
         if self.spec.is_multiple_start:
             if not start :
@@ -77,9 +82,9 @@ class Workflow(EventDispatcher):
             if not start_task:
                 names = ','.join(self.spec.get_start_names())
                 raise WFException('The node you picked up does not exists in [%s]' % (names))
-            self.task_tree = self.Task(self, start_task)
+            self.task_tree = self.Task(self, start_task, operator=self.operator)
         else:
-            self.task_tree = self.Task(self, self.spec.start)
+            self.task_tree = self.Task(self, self.spec.start, operator=self.operator)
 
         self.state = self.RUNNING
         #pubsub
@@ -113,20 +118,21 @@ class Workflow(EventDispatcher):
         msg = 'A task with the given task_id (%s) was not found' % task_id
         raise WFException(self.spec, msg)
 
-    def deliver(self, task_id, message=None, next_tasks=[], async=True):
+    def deliver(self, task_id, message=None, next_tasks=[], operator=None, async=True):
         if task_id is None:
             raise WFException(self.spec, 'task_id is None')
         for task in self.task_tree:
             if task.uuid == task_id:
-                return task.deliver(message=message, next_tasks=next_tasks, async=async)
+                return task.deliver(message=message, next_tasks=next_tasks, operator=operator, async=async)
         msg = 'A task with the given task_id (%s) was not found' % task_id
         raise WFException(self.spec, msg)
 
     def get_active_tasks(self):
         return [task for task in Task.Iterator(self.task_tree, Task.ACTIVE)]
 
-    def finish(self):
+    def finish(self, finish_task):
         self.state = self.FINISHED
+        self.finish_task = finish_task
         #pubsub
         self.spec.fire("workflow:finished", workflow=self)
         self.fire("workflow:state_changed", workflow=self)

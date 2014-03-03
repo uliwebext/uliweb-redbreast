@@ -1,0 +1,8 @@
+
+.wf-trans-list{}
+.wf-trans-list .item {clear:both;padding:15px 0px;width:90%;margin-left:20px;border-left:1px solid #ccc;}
+.wf-trans-list .order{border:1px solid #ccc;width:25px;height:25px;background-color: #eee;border-radius: 10px;
+    float:left;font-size:20px;text-align:center;padding:12px 8px 8px 8px;margin-right:10px;margin-left:-21px;}
+.wf-trans-list .info{width:80%;}
+.wf-trans-list .task{font-weight:bold;}
+.wf-trans-list .created_user{}
