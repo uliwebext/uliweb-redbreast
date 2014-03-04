@@ -2,11 +2,12 @@
 from redbreast.core.spec import CoreWFManager
 from redbreast.middleware import Workflow, Task
 
+WORKFLOW_SPEC_NAME = "ApproveWorkflow"
+
 class ApproveHelper(object):
 
     def __init__(self):
         from uliweb import request
-        self.init_workflow_engine()
         self.WORKFLOW_NAME = "ApproveWorkflow"
 
         self._approve = None
@@ -18,15 +19,15 @@ class ApproveHelper(object):
 
         if get_workflow and self._approve.workflow:
             if not self._workflow:
-                self._workflow = Workflow.load(self._approve._workflow_, operator=self.operator)
 
-    def init_workflow_engine(self):
-        CoreWFManager.use_database_storage()
+                workflow_id = self._approve._workflow_
+
+                #restore workflow from database
+                self._workflow = Workflow.load(workflow_id, operator=self.operator)
 
     def create_workflow(self, start=True):
-        spec = CoreWFManager.get_workflow_spec(self.WORKFLOW_NAME)
-        workflow = Workflow(spec, operator=self.operator)
-
+        #create new workflow
+        workflow = Workflow.create(WORKFLOW_SPEC_NAME, operator=self.operator)
         workflow.set_data({'table': 'approve', 'obj_id': self._approve.id})
 
         if start:

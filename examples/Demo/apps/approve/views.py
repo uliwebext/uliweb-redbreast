@@ -113,6 +113,8 @@ class ApproveView(object):
 
     def edit(self, id):
         from uliweb.utils.generic import EditView
+        from forms import ApproveEditForm
+        from uliweb.form.layout import BootstrapTableLayout
 
         obj = self.model.get(int(id))
         helper = ApproveHelper()
@@ -126,61 +128,27 @@ class ApproveView(object):
 
                 task_name = tasks[0].get_name()
 
-                all_fields = ["title", "content", "submitter", "submitter_date",
-                    "group_opinion","group_user", "group_date",
-                    "depart_opinion","depart_user", "depart_date",
-                    "manager_opinion","manager_user", "manager_date",
-                    "final_opinion","final_user", "final_date"]
-
-                fill_fields = []
-
-                if task_name == "Create":
-                    fields = all_fields[0:2]
-                    static_fields = []
-                    fill_fields = ["submitter", "submitter_date"]
-                    layout = [
-                        ('title'),
-                        ('content'),
-                    ]
-
-                if task_name == "Group":
-                    fields = all_fields[0:5]
-                    static_fields = all_fields[0:4]
-                    fill_fields = ["group_user", "group_date"]
-                    layout = [
-                        ('title'),
-                        ('content'),
-                        ['---']
-                        ["submitter", "submitter_date"],
-                        ("group_opinion")
-                    ]
-
-                if task_name == "Depart":
-                    fields = all_fields[0:8]
-                    static_fields = all_fields[0:7]
-                    fill_fields = ["depart_user", "depart_date"]
-
-                if task_name == "Boss" or task_name == "Manager":
-                    fields = all_fields[0:11]
-                    static_fields = all_fields[0:10]
-                    fill_fields = ["manager_user", "manager_date"]
-
-                if task_name == "Checker":
-                    fields = all_fields[0:14]
-                    static_fields = all_fields[0:13]
-                    fill_fields = ["final_user", "final_date"]
-
-                if task_name == "Archiver":
-                    fields = all_fields[0:16]
-                    static_fields = all_fields[0:16]
+                form_cls = ApproveEditForm().get_form(task_name)
+                fields = form_cls.fields
+                layout = form_cls.layout
+                auto_fill_fields = form_cls.auto_fill_fields
+                if hasattr(form_cls, 'static_fields'):
+                    static_fields = form_cls.static_fields
+                else:
+                    static_fields = fields[0:-1]
 
                 def pre_save(obj, data):
-                    if fill_fields:
-                        data[fill_fields[0]] = request.user.id
-                        data[fill_fields[1]] = datetime.datetime.now()
+                    if auto_fill_fields:
+                        data[auto_fill_fields[0]] = request.user.id
+                        data[auto_fill_fields[1]] = datetime.datetime.now()
+
+                def post_created_form(fcls, model, obj):
+                    fcls.layout_class_args = {'table_class':'table width100'}
+                    fcls.layout_class = BootstrapTableLayout
 
                 view = EditView(self.model, url_for(self.__class__.view, id=id),
                     fields=fields, static_fields = static_fields,
+                    post_created_form=post_created_form,
                     obj=obj, pre_save=pre_save, layout=layout)
                 return view.run()
             else:
@@ -193,34 +161,33 @@ class ApproveView(object):
 
     def view(self, id):
         from uliweb.utils.generic import DetailView
-        #from uliweb.utils.generic import EditView
+        from forms import ApproveEditForm
 
         obj = self.model.get(int(id))
-
-        fields = ['title','content','submitter','submitter_date']
-        layout = [
-                '-- 评审单基本信息 --',
-                ('title'),
-                ('content'),
-                ('submitter', 'submitter_date'),
-                ]
-
-        view = DetailView(self.model, obj=obj, fields=fields, layout=layout)
-        result = view.run()
 
         helper = ApproveHelper()
         helper.bind(obj, get_workflow=True)
 
-        data = {
-            'detailview': result['view'],
-            'obj': result['object'],
-            'workflow': helper.get_workflow(),
-        }
-
         tasks = helper.get_active_tasks()
 
         if len(tasks) == 1:
+
             task_id = tasks[0].get_unique_id()
+            task_name = tasks[0].get_name()
+            form_cls = ApproveEditForm().get_form(task_name)
+            auto_fill_fields = form_cls.auto_fill_fields
+            fields = form_cls.fields + auto_fill_fields
+            layout = form_cls.layout + auto_fill_fields
+
+            view = DetailView(self.model, obj=obj, fields=fields, layout=layout)
+            result = view.run()
+
+            data = {
+                'detailview': result['view'],
+                'obj': result['object'],
+                'workflow': helper.get_workflow(),
+            }
+
             fields = [{'name': 'trans_message', 'verbose_name':'流转意见'}]
 
             if helper.has_deliver_permission(tasks[0], request.user):
@@ -231,17 +198,30 @@ class ApproveView(object):
                     'deliverform': form,
                     'show_deliver_form':True,
                     'task_desc': tasks[0].get_desc(),
-                    'task_spec_name': tasks[0].get_spec_name()
+                    'task_name': tasks[0].get_name()
                 })
 
             else:
                 data.update({
                     'show_deliver_form':False,
                     'task_desc': tasks[0].get_desc(),
-                    'task_spec_name': tasks[0].get_spec_name()
+                    'task_name': tasks[0].get_name()
                 })
 
         else:
+            form_cls = ApproveEditForm().get_form("Archiver")
+            auto_fill_fields = form_cls.auto_fill_fields
+            fields = form_cls.fields + auto_fill_fields
+            layout = form_cls.layout + auto_fill_fields
+
+            view = DetailView(self.model, obj=obj, fields=fields, layout=layout)
+            result = view.run()
+
+            data = {
+                'detailview': result['view'],
+                'obj': result['object'],
+                'workflow': helper.get_workflow(),
+            }
             data.update({
                 'show_deliver_form': False,
                 'task_desc': None

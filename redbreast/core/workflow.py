@@ -22,6 +22,12 @@ class Workflow(EventDispatcher):
         FINISHED:  'FINISHED',
     }
 
+    @classmethod
+    def create(klass, wf_spec_name, **kwargs):
+        from redbreast.core.spec import CoreWFManager
+        spec = CoreWFManager.get_workflow_spec(wf_spec_name)
+        return klass(spec, **kwargs)
+
     def __init__(self, workflow_spec, **kwargs):
 
         LOG.debug("__init__ Workflow instance %s" % str(self))

@@ -7,8 +7,13 @@
         <div class="box-body">
             {{embed detailview}}
         </div>
-        {{if show_deliver_form:}}
-            <a href="/approve/edit/{{=obj.id}}" class="btn btn-primary">编辑</a>
+        {{if show_deliver_form and task_name != 'Archiver':}}
+            {{if task_name == "Create":}}
+                <a href="/approve/edit/{{=obj.id}}" class="btn btn-primary">编辑</a>
+            {{pass}}
+            {{if task_name != "Create":}}
+                <a href="/approve/edit/{{=obj.id}}" class="btn btn-primary">填写意见</a>
+            {{pass}}
         {{pass}}
     </div>
 
