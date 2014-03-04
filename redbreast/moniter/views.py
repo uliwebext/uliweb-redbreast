@@ -92,6 +92,11 @@ class MoniterView(object):
     def tasks(self):
         from uliweb.utils.generic import ListView, get_sort_field
 
+        workflow_id = int(request.GET.get("workflow", -1))
+
+        cond = None
+        if workflow_id > 0:
+            cond = (self.wftask_model.c.workflow == workflow_id)
 
         fields = [ 'id',
             {'name': 'spec_name', 'width':200}, 'desc',
@@ -102,10 +107,11 @@ class MoniterView(object):
         def workflow(value, obj):
             from uliweb.core.html import Tag
             display = obj.workflow.spec_name + ("%04d"%obj.workflow.id)
-            return str(Tag('a', display, href='/redbreast/workflow/%d' % obj.workflow.id))
+            tag = Tag('a', display, href='/redbreast/workflow/%d' % obj.workflow.id)
+            return str(tag) + ("&nbsp; <a class='btn btn-small btn-primary' href='/redbreast/tasks?workflow=%d'>Filter</a>" % obj.workflow.id)
 
         fields_convert_map = {'workflow':workflow, 'id': task_id}
-        view = ListView(self.wftask_model,
+        view = ListView(self.wftask_model, condition=cond,
             fields_convert_map=fields_convert_map, fields=fields)
 
         if 'data' in request.values:
