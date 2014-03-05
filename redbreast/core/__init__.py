@@ -1,3 +1,7 @@
+import logging
+
+LOG = logging.getLogger("redbreast")
+
 #-----------------------------------------------
 # Exception, where prefix WF is a shortcut for Workflow
 
@@ -6,7 +10,7 @@ class WFException(Exception):
         if sender:
             Exception.__init__(self, '%s: %s' % (sender.name, error))
             # Points to the Task that generated the exception.
-            self.sender = sender 
+            self.sender = sender
         else:
             Exception.__init__(self, '%s' % (error))
 
@@ -26,10 +30,11 @@ def after_init_apps(sender):
 
 def register_spec(alias, spec_klass):
     __specs__[alias] = spec_klass
-    
+
 def get_spec(alias):
     return __specs__.get(alias, '')
-    
+
 from workflow import Workflow
 from task import Task
-    
+
+

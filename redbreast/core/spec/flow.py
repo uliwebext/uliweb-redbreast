@@ -141,6 +141,13 @@ class WorkflowSpec(object):
     fire = dispatch_event
 
     def on(self, event_type, listener):
+
+        if event_type == "*":
+            for etype in __WF_EVENTS__:
+                self.dispatcher.on(etype, listener)
+
+            return
+
         if event_type in __WF_EVENTS__:
             return self.dispatcher.on(event_type, listener)
         else:

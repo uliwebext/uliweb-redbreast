@@ -77,7 +77,6 @@ class TaskTrans(object):
             if self.operator:
                 data.update({'created_user': self.operator})
 
-            print data
             obj = WFTrans(**data)
             obj.save()
             self.obj = obj
@@ -161,9 +160,9 @@ class WorkflowDB(Workflow):
     def __init__(self, workflow_spec, **kwargs):
         from uliweb.orm import get_model
 
+        self.deserializing = kwargs.get('deserializing', False)
         super(WorkflowDB, self).__init__(workflow_spec, task_klass=TaskDB, **kwargs)
 
-        self.deserializing = kwargs.get('deserializing', False)
         self.obj = None
         self.model = get_model('workflow')
 

@@ -9,6 +9,7 @@ class WFManager(object):
         self.wf_specs = {}
         self.task_specs = {}
         self.storage = None
+        self._plugins = []
 
     def register_plugin(self, plugin):
         self._plugins.append(plugin)
@@ -19,6 +20,9 @@ class WFManager(object):
     def reset(self):
         self.wf_specs = {}
         self.task_specs = {}
+
+    def workflow_spec_is_loaded(self, wf_spec_name):
+        return wf_spec_name in self.wf_specs
 
     def get_workflow_spec(self, wf_spec_name):
         if not wf_spec_name in self.wf_specs:
@@ -63,7 +67,8 @@ class WFManager(object):
 
                 workflow_spec.update_fields(proc)
                 workflow_spec.update_codes(proc['codes'])
-                self.wf_specs[wf_spec_name] = workflow_spec
+
+                self.add_workflow_spec(workflow_spec)
 
                 return self.wf_specs[wf_spec_name]
             raise WFException('The workflow %s is not existed.' % wf_spec_name)
@@ -71,11 +76,21 @@ class WFManager(object):
     def add_workflow_spec(self, wf_spec):
         if wf_spec.name in self.wf_specs:
             raise KeyError('Duplicate workflow spec name: ' + wf_spec.name)
+
+        #plugin
+        for plugin in self._plugins:
+            plugin.workflow_spec_added(name=wf_spec.name, spec=wf_spec)
+
         self.wf_specs[wf_spec.name] = wf_spec
 
     def add_task_spec(self, task_spec):
         if task_spec.name in self.task_specs:
             raise KeyError('Duplicate task spec name: ' + task_spec.name)
+
+        #plugin
+        for plugin in self._plugins:
+            plugin.task_spec_added(name=task_spec.name, spec=task_spec)
+
         self.task_specs[task_spec.name] = task_spec
 
     def set_storage(self, storage):
@@ -85,5 +100,33 @@ class WFManager(object):
         if not self.storage or self.storage.storage_type != "database":
             from storage import WFDatabaseStorage
             self.storage = WFDatabaseStorage()
+
+class WFManagerPlugin(object):
+    def workflow_spec_added(self, name=None, spec=None):
+        raise NotImplementedError
+
+    def task_spec_added(self, name=None, spec=None):
+        raise NotImplementedError
+
+class WFManagerBindPlugin(WFManagerPlugin):
+
+    def __init__(self, binds=[]):
+        self.spec = {}
+
+    def bind(self, wf_spec_name, event, handler):
+        if not self.spec.has_key(wf_spec_name):
+            self.spec[wf_spec_name] = []
+        self.spec[wf_spec_name].append((event, handler))
+
+    def workflow_spec_added(self, name=None, spec=None):
+        import re
+        for spec_name in self.spec.keys():
+            regex = "^" + spec_name.replace("*", ".*").replace("?", ".") + "$"
+            if (spec_name == "*") or (spec_name == name) or re.complie(regex).search(spec_name):
+                for event, handler in self.spec[spec_name]:
+                    spec.on(event, handler)
+
+    def task_spec_added(self, name=None, spec=None):
+        pass #nothing
 
 CoreWFManager = WFManager()
