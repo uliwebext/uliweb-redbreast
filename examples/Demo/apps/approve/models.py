@@ -24,7 +24,8 @@ class Approve(Model):
     final_user      = Reference('user', verbose_name='最终审核意见填写人')
     final_date      = Field(datetime.datetime, verbose_name='最终审核时间')
 
-    workflow_status = Field(str, max_length=255, verbose_name="当前阶段")
+    task_spec_desc  = Field(str, max_length=255, verbose_name="当前阶段")
+    task_spec_name  = Field(str, max_length=100, verbose_name="当前阶段标识")
 
     workflow        = Reference('workflow', verbose_name='关联工作流', collection_name='approves')
 
@@ -47,7 +48,8 @@ class Approve(Model):
         fields = [
             {'name':'title', 'width':250, 'sortable':True},
             {'name':'content', 'width':100, 'sortable':True},
-            {'name':'workflow_status', 'width':100, 'sortable':True},
+            {'name':'task_spec_desc', 'width':100, 'sortable':True},
+            {'name':'task_spec_name', 'width':100, 'sortable':True},
             {'name':'submitter', 'width':100, 'sortable':True},
             {'name':'submitter_date', 'width':100, 'sortable':True},
         ]

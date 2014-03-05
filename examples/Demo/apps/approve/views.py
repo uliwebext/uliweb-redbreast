@@ -82,8 +82,18 @@ class ApproveView(object):
 
     def todolist(self):
         from uliweb.utils.generic import ListView, get_sort_field
+        from sqlalchemy.sql import or_
+
         fields_convert_map = {'title': approve_title}
-        view = ListView(self.model, fields_convert_map=fields_convert_map)
+        helper = ApproveHelper()
+        spec_names = helper.get_task_spec_names(request.user)
+        cond = None
+        if len(spec_names) > 0:
+            cond = or_(*[self.model.c.task_spec_name == name for name in spec_names])
+        print cond
+
+        view = ListView(self.model, condition=cond,
+            fields_convert_map=fields_convert_map)
 
         if 'data' in request.values:
             return json(view.json())

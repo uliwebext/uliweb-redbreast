@@ -66,5 +66,26 @@ class ApproveHelper(object):
                     return True
         return False
 
+    def get_task_spec_names(self, user):
+        from uliweb import request
+        spec_names = request.session.get('_task_spec_names_')
+
+        if spec_names:
+            return spec_names
+        else:
+            spec_names = []
+            from uliweb import settings
+            from uliweb import functions
+            maps = settings.get_var("WORKFLOW/TASK_PERMISSION_MAP")
+            for key in maps:
+                wf_spec_name, task_spec_name = key.split(".")
+                for perm in maps[key]:
+                    if functions.has_permission(user, perm):
+                        spec_names.append(task_spec_name)
+            request.session.setdefault('_task_spec_names_', spec_names)
+            return spec_names
+
+
+
 
 

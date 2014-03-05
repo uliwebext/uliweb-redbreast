@@ -1,9 +1,15 @@
+import logging
 
+LOG = logging.getLogger("redbreast.demo")
 
-def after_init_apps(sender):
+def workflow_log_handler(event):
+    if hasattr(event, 'workflow'):
+        if event.workflow.deserializing:
+            LOG.info(" >> Event:%s [deserializing]" % event.type)
+        else:
+            LOG.info(" >> Event:%s" % event.type)
 
-    # set workflow engine to load spec from database
-    from redbreast.core.spec import CoreWFManager
-    from redbreast.core.spec import WFDatabaseStorage
-    storage = WFDatabaseStorage()
-    CoreWFManager.set_storage(storage)
+        LOG.info(" -- spec %s" % event.workflow.get_spec_name())
+        if hasattr(event, 'task'):
+            LOG.info(" -- task_spec %s" % event.task.get_spec_name())
+
