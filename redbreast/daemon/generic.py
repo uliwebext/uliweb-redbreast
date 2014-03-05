@@ -210,7 +210,7 @@ class GenericDaemon(object):
 
     def startMainLoop(self):
         import gevent
-        print ""
+        print "..."
         while True:
             gevent.sleep(self.sleep_seconds)
             if self.stopMainLoop:

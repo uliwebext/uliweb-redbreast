@@ -112,7 +112,15 @@ class TaskDB(Task):
     def serialize(self):
         if not self.killed:
             from uliweb.orm import get_model
+            from uliweb.utils.common import Serial
+            import datetime
+
             WFTask = get_model('workflow_task')
+
+            #data for deliver
+            self.set_data('deliver_msg', self.deliver_msg)
+            self.set_data('operator', self.operator)
+            self.set_data('next_tasks', self.next_tasks)
 
             data = {
                 'workflow'      : self.workflow.obj.id,
@@ -121,25 +129,39 @@ class TaskDB(Task):
                 'alias_name'    : self.get_name(),
                 'desc'          : self.get_desc(),
                 'uuid'          : self.uuid,
+                'data'          : Serial.dump(self.data),
             }
+
+            now = datetime.datetime.now()
             if self.obj:
                 if self.operator:
                     data.update({'modified_user': self.operator})
+                    data.update({'modified_date': now})
                 self.obj.update(**data)
             else:
                 if self.operator:
                     data.update({'modified_user': self.operator})
+                    data.update({'modified_date': now})
                     data.update({'created_user': self.operator})
                 self.obj = WFTask(**data)
             self.obj.save()
 
     def deserialize(self, obj):
+        from uliweb.utils.common import Serial
         #state
         self.obj = obj
         if self.obj:
             self._state = obj.state
             self.state_history = [obj.state]
             self.uuid = obj.uuid
+
+            self.data = Serial.load(obj.data)
+
+            #data for deliver
+            self.deliver_msg = self.get_data('deliver_msg', "")
+            self.operator = self.get_data('operator', "")
+            self.next_tasks = self.get_data('next_tasks', [])
+
 
 class WorkflowDB(Workflow):
 

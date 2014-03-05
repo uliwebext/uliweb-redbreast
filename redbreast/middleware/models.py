@@ -35,10 +35,12 @@ class Workflow_Task(Model):
     state = Field(int, verbose_name='活动状态', default=1, choices=get_var('PARA/WF_TASK_STATUS'))
     created_date = Field(datetime.datetime, verbose_name='创建时间', auto_now_add=True)
     created_user = Reference('user', verbose_name='创建人')
-    modified_date = Field(datetime.datetime, verbose_name='修改时间', auto_now=True, auto_now_add=True)
+    modified_date = Field(datetime.datetime, verbose_name='修改时间')
     modified_user = Reference('user', verbose_name='修改人')
     data = Field(PICKLE, verbose_name='工作流活动绑定数据')
     uuid = Field(CHAR, verbose_name='UUID', max_length=255)
+    async_deliver_date = Field(datetime.datetime, auto_now=True, auto_now_add=True)
+    async_deliver_try_count = Field(int, default=0)
 
 class Workflow_Trans(Model):
     """

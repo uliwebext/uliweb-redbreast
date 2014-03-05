@@ -133,6 +133,13 @@ class Workflow(EventDispatcher):
     def get_active_tasks(self):
         return [task for task in Task.Iterator(self.task_tree, Task.ACTIVE)]
 
+    def get_task(self, uuid):
+        for task in self.task_tree:
+            if task.uuid == uuid:
+                return task
+        msg = 'A task with the given task_id (%s) was not found' % uuid
+        raise WFException(self.spec, msg)
+
     def finish(self, finish_task):
         self.state = self.FINISHED
         self.finish_task = finish_task

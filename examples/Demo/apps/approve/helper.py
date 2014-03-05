@@ -1,5 +1,4 @@
 
-from redbreast.core.spec import CoreWFManager
 from redbreast.middleware import Workflow, Task
 
 WORKFLOW_SPEC_NAME = "ApproveWorkflow"
@@ -43,8 +42,10 @@ class ApproveHelper(object):
 
     def deliver(self, message, next_tasks=[]):
         if self._workflow and self._current_task:
+            async = True
             return self._workflow.deliver(self._current_task.uuid,
-                message=message, next_tasks=next_tasks, async=False)
+                message=message, next_tasks=next_tasks, async=async)
+
 
     def get_active_tasks(self):
         tasks = self._workflow.get_active_tasks()
