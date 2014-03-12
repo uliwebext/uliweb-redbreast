@@ -103,6 +103,8 @@ class Delegate(object):
         super(Delegate, self).__init__()
         self.delegate = delegate
 
+_DEFAULT_TASK_SPEC_PREFIX_ = 'redbreast.core.spec.'
+
 # Utils    --------------------------
 class CommonUtils(object):
 
@@ -122,6 +124,8 @@ class CommonUtils(object):
         if klass.find(".")==-1:
             from redbreast.core import get_spec
             klass = get_spec(klass)
+            if klass == '':
+                klass = _DEFAULT_TASK_SPEC_PREFIX_ + name 
 
         return CommonUtils.get_class(klass)
 
