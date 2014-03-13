@@ -24,7 +24,7 @@ class WorkflowSpec(object):
 
     class Proxy(Delegate):
         delegated_methods = ('__str__', 'get_type', 'is_default',
-                'is_ready', 'do_execute', 'do_transfer', 'join_ready')
+                'ready', 'execute', 'transfer', 'join_ready')
 
         def __init__(self, name, task_spec, workflow_spec):
             super(WorkflowSpec.Proxy, self).__init__(task_spec)
@@ -72,7 +72,11 @@ class WorkflowSpec(object):
             return map
 
         def get_code(self, fnc_name):
-            return self.workflow_spec.get_code(self.name, fnc_name)
+            fnc = self.workflow_spec.get_code(self.name, fnc_name)
+            if not fnc:
+                return self.delegate.get_code(fnc_name)
+
+            return fnc
 
         def refresh_flow_type(self):
             input_count = len(self.inputs)
@@ -134,6 +138,9 @@ class WorkflowSpec(object):
         self.end_tasks = None
 
         self.dispatcher = EventDispatcher()
+
+        for key in self.__supported_config_fields__:
+            self[key] = None
 
     def dispatch_event(self, event_type, **attrs):
         return self.dispatcher.fire(event_type, **attrs)

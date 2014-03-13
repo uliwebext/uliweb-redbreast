@@ -53,10 +53,15 @@ class WFManager(object):
                     if not task_spec:
                         task = tasks[name]
 
-                        klass = task['class']
-                        cls = CommonUtils.get_spec(task['class'])
+                        if not task.has_key('class'):
+                            klass = 'AutoSimpleTask'
+                        else:
+                            klass = task['class']
+                            
+                        cls = CommonUtils.get_spec(klass)
                         task_spec = cls(task['name'], desc=task.get('desc', task['name']))
                         task_spec.update_fields(task)
+                        task_spec.update_codes(task['codes'])
                         self.add_task_spec(task_spec)
                         task_spec = self.get_task_spec(task_spec_name)
 

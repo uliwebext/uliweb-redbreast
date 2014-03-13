@@ -87,13 +87,16 @@ class Workflow(EventDispatcher):
                 raise WFException('The node you picked up does not exists in [%s]' % (names))
             self.task_tree = self.Task(self, start_task, operator=self.operator)
         else:
-            self.task_tree = self.Task(self, self.spec.start, operator=self.operator)
+            if self.spec.start:
+                self.task_tree = self.Task(self, self.spec.start, operator=self.operator)
+            else:
+                raise WFException('We cannot find start task in workflow spec [%s]' % self.spec.name)
 
         self.state = self.RUNNING
         #pubsub
         self.spec.fire("workflow:running", workflow=self)
         self.fire("workflow:state_changed", workflow=self)
-        self.task_tree.is_ready()
+        self.task_tree.ready()
 
     def run(self):
         while self.run_next():
@@ -108,7 +111,7 @@ class Workflow(EventDispatcher):
             #task.task_spec._update_state(task)
             if task._getstate() == Task.READY:
                 self.last_task = task
-                task.do_execute(transfer=True)
+                task.execute(transfer=True)
                 return True
         return False
 

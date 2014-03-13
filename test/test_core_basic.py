@@ -1,5 +1,4 @@
 from redbreast.core.spec import *
-from redbreast.core.const import WFConst
 
 class TestBasic(object):
     

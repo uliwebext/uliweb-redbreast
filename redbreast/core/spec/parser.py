@@ -34,13 +34,17 @@ class WorkflowGrammar(dict):
         def task_def_desc(): return tripple
         def task_def_end(): return 0, space, _(r'end'), blankline
         def task_def_extend(): return 0, space, _(r'\('), 0, space, task_def_parent, 0, space, _(r'\)')
+        def task_code_name(): return iden
+        def task_code_head(): return 0, space, _(r'code'), 0, space, task_code_name, 0, space, colon, blankline
+        def task_code_body(): return _(r'(.*?)end[ \t]*$', re.M|re.S)
+        def task_code(): return task_code_head, task_code_body, blankline        
         def kwarg_name(): return iden
         def kwarg_value(): return _(r'[^\r\n]+'), blankline
         def kwarg(): return 0, space, kwarg_name, 0, space, colon, 0, space, kwarg_value
-        def task(): return task_def_head, 0, task_def_desc, -1, [kwarg, blankline, comment_line], task_def_end
+        def task(): return task_def_head, 0, task_def_desc, -1, [kwarg, task_code, blankline, comment_line], task_def_end
     
         #process
-        def process_def_head(): return _(r'process'), space, process_def_name, 0, space, colon, blankline
+        def process_def_head(): return 0, space, _(r'process'), space, process_def_name, 0, space, colon, blankline
         def process_def_name(): return iden
         def process_def_alias_task(): return iden
         def process_def_desc(): return tripple
@@ -124,7 +128,7 @@ class WorkflowVisitor(SimpleVisitor):
         self.processes = {}
         
     def visit_task(self, node):
-        t = {}
+        t = {'codes':{}}
         name = node.find('task_def_name').text
         parent = node.find('task_def_parent')
         if parent:
@@ -141,6 +145,14 @@ class WorkflowVisitor(SimpleVisitor):
             n = k.find('kwarg_name').text.strip()
             v = k.find('kwarg_value').text.strip()
             t[n] = v
+
+        for k in node.find_all('task_code'):
+            _n = k.find('task_code_name').text
+            code = k.find('task_code_body').text
+            fname, funcname = self._format_func_name(name, _n)
+            _code = self._format_func_code(funcname, code)
+            if _code:
+                t['codes'][fname] = _code
              
         t['name'] = name
         self.tasks[name] = t

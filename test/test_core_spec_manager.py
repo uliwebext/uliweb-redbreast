@@ -31,3 +31,9 @@ class TestCoreWFManager(object):
             CoreWFManager.add_workflow_spec(wf_spec1)
             wf_spec2 = WorkflowSpec(name = 'TestWorkFlow')
             CoreWFManager.add_workflow_spec(wf_spec2)
+
+    def test_manager_load_spec(self):
+        CoreWFManager.storage.set_folder("data")
+        wf_spec = CoreWFManager.get_workflow_spec('SimpleWorkflow')
+        assert wf_spec != None
+        assert wf_spec.name == "SimpleWorkflow"

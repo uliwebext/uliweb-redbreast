@@ -21,8 +21,8 @@ class WFSpecFileStorage(object):
         self._spec_path = folder
 
     def load_spec_file(self, wf_spec_name):
-        from os.path import exists
-        path = wf_spec_name+self._spec_suffix
+        from os.path import exists, join
+        path = join(self._spec_path, wf_spec_name+self._spec_suffix)
         if exists(path):
             tasks, processes = parseFile(path)
             self._cache_tasks.update(tasks)

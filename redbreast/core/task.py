@@ -205,11 +205,11 @@ class Task(object):
             p.remove_child(self)
         self.parents = []
 
-    def is_ready(self):
-        return self.spec.is_ready(self, self.workflow)
+    def ready(self):
+        return self.spec.ready(self, self.workflow)
 
-    def do_execute(self, transfer=False):
-        return self.spec.do_execute(self, self.workflow, transfer=transfer)
+    def execute(self, transfer=False):
+        return self.spec.execute(self, self.workflow, transfer=transfer)
 
     def deliver(self, message=None, next_tasks=[], async=True):
         self.deliver_msg = message
@@ -219,7 +219,7 @@ class Task(object):
         self.state = Task.READY
 
         if async == False:
-            return self.do_execute(transfer=True)
+            return self.execute(transfer=True)
 
         return True
 
