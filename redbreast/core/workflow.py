@@ -66,6 +66,15 @@ class Workflow(EventDispatcher):
             self.data[name] = value
         self.fire("workflow:data_changed", workflow=self)
 
+    def get_spec_alldata(self):
+        return self.spec.get_alldata()
+
+    def get_spec_data(self, name, default=None):
+        return self.spec.get_data(name, default)
+
+    def set_spec_data(self, name, value=None):
+        return self.spec.set_spec_data(name, value)        
+
     def get_spec_name(self):
         return self.spec.name
 

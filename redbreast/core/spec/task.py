@@ -22,6 +22,8 @@ class TaskSpec(object):
         self._code_strs = {} #cache config code str
         self._codes = {}     #cache executed function def
 
+        self.data = {}
+
     def __str__(self):
         return "%s (%s)" % (self.name, self.__class__.__name__)
 
@@ -34,6 +36,19 @@ class TaskSpec(object):
     def get_type(self):
         return self.task_type or 'SimpleTask'
 
+    def get_alldata(self):
+        return self.data
+
+    def get_data(self, name, default=None):
+        return self.data.get(name, default)
+
+    def set_data(self, name, value=None):
+        if isinstance(name, dict):
+            for key in name:
+                self.data[key] = name[key]
+        elif isinstance(name, str):
+            self.data[name] = value        
+
     def is_default(self):
         return self.default
 
@@ -41,6 +56,8 @@ class TaskSpec(object):
         for key in data:
             if key in self.__supported_config_fields__:
                 setattr(self, key, data[key])
+            else:
+                self.set_data(key, data[key])
 
         self.update_fields_type()
 
@@ -207,6 +224,9 @@ class JoinTask(TaskSpec):
 
 class ChoiceTask(TaskSpec):
     task_type = 'ChoiceTask'
+
+    def set_next_task(self, spec_name):
+        self.next_tasks = [spec_name]
 
     def default_transfer(self, task, workflow):
         if len(task.spec.outputs)<1:

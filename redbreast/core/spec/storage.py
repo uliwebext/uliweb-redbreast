@@ -8,7 +8,7 @@ class WFStorage(object):
 class WFSpecFileStorage(object):
     storage_type = 'specs'
 
-    def __init__(self, suffix=".spec", folder=""):
+    def __init__(self, suffix=".spec", folder="spec"):
         self._cache_tasks = {}
         self._cache_workflows = {}
         self._spec_path = folder

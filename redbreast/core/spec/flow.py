@@ -24,7 +24,8 @@ class WorkflowSpec(object):
 
     class Proxy(Delegate):
         delegated_methods = ('__str__', 'get_type', 'is_default',
-                'ready', 'execute', 'transfer', 'join_ready')
+                'ready', 'execute', 'transfer', 'join_ready', 
+                'get_data', 'set_data', 'get_alldata')
 
         def __init__(self, name, task_spec, workflow_spec):
             super(WorkflowSpec.Proxy, self).__init__(task_spec)
@@ -142,6 +143,8 @@ class WorkflowSpec(object):
         for key in self.__supported_config_fields__:
             self[key] = None
 
+        self.data = {}
+
     def dispatch_event(self, event_type, **attrs):
         return self.dispatcher.fire(event_type, **attrs)
 
@@ -225,6 +228,8 @@ class WorkflowSpec(object):
         for key in data:
             if key in self.__supported_config_fields__:
                 setattr(self, key, data[key])
+            else:
+                self.set_data(key, data[key])
 
     def update_codes(self, data):
 
@@ -247,6 +252,19 @@ class WorkflowSpec(object):
 
     def get_outputs(self, name):
         return self.task_outputs.get(name, [])
+
+    def get_alldata(self):
+        return self.data
+
+    def get_data(self, name, default=None):
+        return self.data.get(name, default)
+
+    def set_data(self, name, value=None):
+        if isinstance(name, dict):
+            for key in name:
+                self.data[key] = name[key]
+        elif isinstance(name, str):
+            self.data[name] = value           
 
     def validate(self):
         for spec in self.task_specs:
