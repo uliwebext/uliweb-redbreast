@@ -7,7 +7,7 @@ LOG = logging.getLogger("redbreast")
 
 class WFException(Exception):
     def __init__(self, error, sender=None):
-        if sender:
+        if sender and hasattr(sender, 'name'):
             Exception.__init__(self, '%s: %s' % (sender.name, error))
             # Points to the Task that generated the exception.
             self.sender = sender

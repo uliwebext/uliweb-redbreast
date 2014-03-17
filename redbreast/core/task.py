@@ -195,6 +195,12 @@ class Task(object):
     def get_next_tasks(self):
         return [(task.name, task.get_desc()) for task in self.spec.outputs]
 
+    def set_next_tasks(self, *args):
+        self.next_tasks = [task for task in args]
+
+    def set_next_task(self, task):
+        self.next_tasks = [task]
+
     def add_parent(self, parent):
         self.parents.append(parent)
 

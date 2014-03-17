@@ -6,7 +6,7 @@ from result import *
 class TaskSpec(object):
     task_type = 'Task'
     __supported_config_fields__ = ['default', 'automatic', 'desc']
-    __supported_codes__ = ['execute', 'ready', 'transfer']
+    __supported_codes__ = ['execute', 'ready', 'transfer', 'choose']
     automatic = False
     default   = False
 
@@ -187,11 +187,11 @@ class SplitTask(TaskSpec):
     task_type = 'SplitTask'
     def default_transfer(self, task, workflow):
         if len(task.spec.outputs)<1:
-            raise WFException(self, 'No output tasks for choosing.')
-        ret = self.choose(workflow.get_alldata(), task, workflow)
+            raise WFException('No output tasks for choosing.', self)
+        ret = self.default_choose(task, workflow)
         return ret
 
-    def choose(self, data, task, workflow):
+    def default_choose(self, task, workflow):
         return YES
 
 class JoinTask(TaskSpec):
@@ -201,12 +201,16 @@ class JoinTask(TaskSpec):
         from redbreast.core import Task
 
         #merge tasks
-
         for one in workflow.task_tree:
             if one != task and one.spec == task.spec and one.state & Task.ACTIVE != 0 :
                 for p in task.parents:
                     one.add_parent(p)
                     p.add_child(one)
+
+                #TODO
+                # data_merget before killed
+                # need add a custom method or event to know this merge or doing something
+
                 task.kill()
                 one.spec.ready(one, workflow)
                 return NO
@@ -225,34 +229,39 @@ class JoinTask(TaskSpec):
 class ChoiceTask(TaskSpec):
     task_type = 'ChoiceTask'
 
-    def set_next_task(self, spec_name):
-        self.next_tasks = [spec_name]
-
     def default_transfer(self, task, workflow):
         if len(task.spec.outputs)<1:
             raise WFException(self, 'No output tasks for choosing.')
-        ret = self.choose(workflow.get_alldata(), task, workflow)
+
+        fnc_choose = task.spec.get_code('choose') or self.default_choose
+        ret = fnc_choose(task, workflow)
+        if not isinstance(ret, tuple) and not isinstance(ret, list):
+            ret = [ret]
+
+        if len(ret) > 1:
+            raise WFException('ChoiceTask %s could choose only one deliver task.' % self.name, self)
+
         return ret
 
-    def choose(self, data, task, workflow):
+    def default_choose(self, task, workflow):
         result = []
         next_tasks = task.next_tasks
         output_spec_names = [task_spec.name for task_spec in task.spec.outputs]
 
         for next_task in next_tasks:
             if not next_task in output_spec_names:
-                raise WFException(self, 'user choosed task %s is invalid' % next_task.name)
+                raise WFException('user choosed task %s is invalid' % next_task.name, self)
             result.append(next_task)
 
-        if len(result) > 1:
-            raise WFException(self, 'ChoiceTask %s only have one deliver task.' % self.name)
-
-        if len(result) == 1:
+        if len(result) > 0:
+            # 1/ user choices in next_tasks
             return result
-
-        for task_spec in task.spec.outputs:
-            if task_spec.is_default():
-                return [task_spec.name]
+        else:
+            # 2/ default choice in spec
+            for task_spec in task.spec.outputs:
+                if task_spec.is_default():
+                    return [task_spec.name]
+            # 3/ first flow in spec
         return [task.spec.outputs[0].name]
 
 class MultiChoiceTask(TaskSpec):

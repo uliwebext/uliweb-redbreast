@@ -33,6 +33,9 @@ class WorkflowSpec(object):
             self.workflow_spec = workflow_spec
             self.flow_type = __FLOW_SINGLE__
 
+        def call(self, method, *args, **kwargs):
+            return getattr(self.delegate, method)(*args, **kwargs)
+
         def is_start(self):
             return self.flow_type == __FLOW_START__
 
