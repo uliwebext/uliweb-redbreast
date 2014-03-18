@@ -223,15 +223,19 @@ class JoinTask(TaskSpec):
 
         return YES
 
-    def default_ready(self, task, workflow):
-        return self.join_ready(task, workflow)
+    def ready(self, task, workflow):
+        ret = self.join_ready(task, workflow)
+        if ret == YES:
+            return super(JoinTask, self).ready(task, workflow)
+        else:
+            return NO
 
 class ChoiceTask(TaskSpec):
     task_type = 'ChoiceTask'
 
     def default_transfer(self, task, workflow):
         if len(task.spec.outputs)<1:
-            raise WFException(self, 'No output tasks for choosing.')
+            raise WFException('No output tasks for choosing.', self)
 
         fnc_choose = task.spec.get_code('choose') or self.default_choose
         ret = fnc_choose(task, workflow)
@@ -269,18 +273,37 @@ class MultiChoiceTask(TaskSpec):
 
     def default_transfer(self, task, workflow):
         if len(task.spec.outputs)<1:
-            raise WFException(self, 'No output tasks for choosing.')
-        ret = self.choose(workflow.get_alldata(), task, workflow)
+            raise WFException('No output tasks for choosing.', self)
+        fnc_choose = task.spec.get_code('choose') or self.default_choose
+        ret = fnc_choose(task, workflow)
+        if not isinstance(ret, tuple) and not isinstance(ret, list):
+            ret = [ret]
+
         return ret
 
-    def choose(self, data, task, workflow):
-        default_tasks = []
-        for task_spec in task.spec.outputs:
-            if task_spec.is_default():
-                default_tasks.append(task_spec.name)
-        if default_tasks:
-            return defalut_tasks
-        return []
+    def default_choose(self, task, workflow):
+        result = []
+        next_tasks = task.next_tasks
+        output_spec_names = [task_spec.name for task_spec in task.spec.outputs]
+
+        for next_task in next_tasks:
+            if not next_task in output_spec_names:
+                raise WFException('user choosed task %s is invalid' % next_task.name, self)
+            result.append(next_task)
+
+        if len(result) > 0:
+            # 1/ user choices in next_tasks
+            return result
+        else:
+            # 2/ default choice in spec
+            default_tasks = []
+            for task_spec in task.spec.outputs:
+                if task_spec.is_default():
+                    default_tasks.append(task_spec.name)
+            if default_tasks:
+                return defalut_tasks
+        # 3/ all flows in spec
+        return [task_spec.name for task_spec in task.spec.outputs]
 
 class AutoSimpleTask(SimpleTask):
     automatic = True
