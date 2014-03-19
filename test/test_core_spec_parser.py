@@ -37,7 +37,7 @@ class TestSpecParser(object):
         assert tasks.get('task3').get('desc') == "task1 desc"
         
     def test_workflow(self):
-        config_file = join(dirname(__file__), "data/TestWorkflow.config")
+        config_file = join(dirname(__file__), "data/TestWorkflow.spec")
         tasks, procs = parseFile(config_file)
         assert len(procs) == 1
         

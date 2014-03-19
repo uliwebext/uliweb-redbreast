@@ -22,8 +22,19 @@ class MoniterView(object):
         self.wftask_model = functions.get_model('workflow_task')
 
     def __begin__(self):
-        if not request.user.is_superuser:
-            error('你不是超级用户不能进行这项操作！')
+        from uliweb import settings, functions
+        roles = settings.get_var('REDBREAST/MonitorRoles', None)
+        if roles and not request.user.is_superuser:
+            passed = False
+            for role in roles:
+                if functions.has_role(request.user, role):
+                    passed = True
+
+            if passed == False:
+                error('你没有权限访问这个链接！')
+        else:
+            if not request.user.is_superuser:
+                error('你不是超级用户不能进行这项操作！')
 
     @expose('')
     @expose('workflows')

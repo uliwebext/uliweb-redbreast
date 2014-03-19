@@ -2,7 +2,7 @@ from redbreast.core.spec import *
 from redbreast.core.spec import WFManager
 
 def call():
-    
+     
     print "Test....."
     wf_spec = WorkflowSpec(name = 'TestWorkFlow')
     

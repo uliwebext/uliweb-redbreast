@@ -28,8 +28,8 @@ class TestCoreWFManagerDB(object):
         from redbreast.core.spec import WFDatabaseStorage
         
         CoreWFManager.reset()
-        storage = WFDatabaseStorage()
-        CoreWFManager.set_storage(storage)
+        #storage = WFDatabaseStorage()
+        #CoreWFManager.set_storage(storage)
     
     def teardown(self):
         import shutil
