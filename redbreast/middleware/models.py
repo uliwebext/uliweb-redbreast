@@ -23,6 +23,8 @@ class Workflow(Model):
     modified_date = Field(datetime.datetime, verbose_name='修改时间', auto_now=True, auto_now_add=True)
     modified_user = Reference('user', verbose_name='修改人', default=get_modified_user, auto=True, auto_add=True)
     data = Field(PICKLE, verbose_name='工作流绑定数据')
+    ref_unique_id = Field(CHAR, verbose_name='关联数据标识', max_length=255)
+    
 
 class Workflow_Task(Model):
     """

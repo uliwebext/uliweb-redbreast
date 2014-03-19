@@ -158,3 +158,9 @@ class Workflow(EventDispatcher):
         #pubsub
         self.spec.fire("workflow:finished", workflow=self)
         self.fire("workflow:state_changed", workflow=self)
+
+    def is_running(self):
+        return self.state == self.RUNNING
+        
+    def is_finished(self):
+        return self.state == self.FINISHED

@@ -239,6 +239,17 @@ class WorkflowDB(Workflow):
             return self.obj.id
         return None
 
+    def set_ref_unique_id(self, uid):
+        self.set_data("ref_unique_id", uid)
+
+    def get_ref_unique_id(self):
+        return self.get_data("ref_unique_id", None)
+
+    def del_ref_unique_id(self):
+        self.set_data("ref_unique_id", None)        
+
+    ref_unique_id = property(get_ref_unique_id, set_ref_unique_id, del_ref_unique_id, "Reference Unique ID property.")
+
     def serialize(self):
         from uliweb.orm import get_model
         from uliweb.utils.common import Serial
