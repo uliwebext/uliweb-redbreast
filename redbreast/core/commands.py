@@ -18,8 +18,8 @@ def loadspec(apps_list, global_options):
     from uliweb import settings
     from redbreast.core.spec import parse, parseFile
     
-    SPEC_DIR = settings.GLOBAL.SPEC_DIR
-    SPEC_SUFFIX = settings.GLOBAL.SPEC_SUFFIX
+    SPEC_DIR = settings.REDBREAST.SPEC_DIR
+    SPEC_SUFFIX = settings.REDBREAST.SPEC_SUFFIX
     
     all_tasks = {}
     all_workflows = {}
