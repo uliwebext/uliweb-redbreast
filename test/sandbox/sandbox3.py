@@ -1,6 +1,6 @@
 from redbreast.core.spec import CoreWFManager
 from redbreast.core.spec import *
-from redbreast.middleware import Workflow, Task
+from redbreast.serializable import Workflow, Task
 import os
 from os.path import dirname, join
 

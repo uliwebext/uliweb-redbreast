@@ -45,7 +45,7 @@ class WFEngineDaemon(GenericDaemon):
             traceback.print_exc()
 
     def async_deliver(self, task_obj):
-        from redbreast.middleware import Workflow, Task
+        from redbreast.serializable import Workflow, Task
         wf_id = task_obj.workflow.id
 
         workflow = Workflow.load(wf_id, operator=task_obj._modified_user_)
