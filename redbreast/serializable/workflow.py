@@ -260,16 +260,18 @@ class WorkflowDB(Workflow):
             'state'         : self.state,
             'data'          : Serial.dump(self.data),
             'desc'          : self.spec.desc,
+            'ref_unique_id' : self.ref_unique_id,
         }
-
 
         #DEBUG -------------------------
         if __DEBUG__:
+            print 'workflow serialize -----------------------------(1)'
             for i in data:
                 print (i, data[i])
 
             print 'spec_name: %s' % self.spec.name
             print 'state: %s' % self.state
+            print 'workflow serialize -----------------------------(2)'
 
         #DEBUG
         if self.obj:
@@ -296,6 +298,18 @@ class WorkflowDB(Workflow):
             self.spec = workflow_spec
             self.state = obj.state
             self.data = Serial.load(obj.data)
+            self.ref_unique_id = obj.ref_unique_id
+
+            #DEBUG -------------------------
+            if __DEBUG__:
+                print 'workflow deserialize -----------------------------(1)'
+                print 'ref_unique_id: %s-%s' % (self.ref_unique_id, obj.ref_unique_id)
+                print 'spec_name: %s' % self.spec.name
+                print 'state: %s' % self.state
+                print 'workflow deserialize -----------------------------(2)'
+
+            #DEBUG
+
 
             start_task_obj = None
             task_list = {}

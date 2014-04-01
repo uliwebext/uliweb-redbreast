@@ -41,6 +41,7 @@ class Workflow_Task(Model):
     modified_user = Reference('user', verbose_name='修改人')
     data = Field(PICKLE, verbose_name='工作流活动绑定数据')
     uuid = Field(CHAR, verbose_name='UUID', max_length=255)
+    async_status = Field(int, default=0)
     async_deliver_date = Field(datetime.datetime, auto_now=True, auto_now_add=True)
     async_deliver_try_count = Field(int, default=0)
 

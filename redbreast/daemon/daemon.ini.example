@@ -1,0 +1,15 @@
+
+[GLOBAL]
+daemon_id = 'approve-workflow-engine'
+port = 4204
+
+# count for generating limit sentence of SQL
+query_limit = 10
+
+# worker number
+worker = 10
+
+# cache queue size
+queue_size = 10
+
+

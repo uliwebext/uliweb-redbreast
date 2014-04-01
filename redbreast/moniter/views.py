@@ -144,6 +144,7 @@ class MoniterView(object):
              'modified_user', 'modified_date',
              {'name': 'inflows', 'verbose_name': '流入'},
              {'name': 'outflows',  'verbose_name': '流出'},
+             'async_status', 'async_deliver_date', 'async_deliver_try_count',
              ]
 
         layout = [
@@ -155,6 +156,8 @@ class MoniterView(object):
                 '-- 流向信息 --',
                 ('inflows'),
                 ('outflows'),
+                '-- Other --',
+                ('async_status', 'async_deliver_date', 'async_deliver_try_count'),
                 ]
 
         def inflows(value, obj):
