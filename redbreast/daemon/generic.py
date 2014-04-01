@@ -1,6 +1,7 @@
 import logging
 from uliweb.utils.coloredlog import ColoredStreamHandler
 import cPickle
+from cmd import Cmd
 
 log = logging.getLogger('redbreast.daemon')
 log.addHandler(ColoredStreamHandler())
@@ -19,8 +20,17 @@ class DaemonMsg(object):
     @classmethod
     def load_from_socket(cls, sock):
         msgstr = []
-        for s in sock.recv(1024):
+        while True:
+            s = sock.recv(1024)
+
+            if not s:
+                break
             msgstr.append(s)
+            try:
+                msg = DaemonMsg.load("".join(msgstr))
+                break
+            except:
+                pass
 
         msg = DaemonMsg.load("".join(msgstr))
         return msg
@@ -50,26 +60,48 @@ class DaemonResponse(DaemonMsg):
             return "[ERROR] %s" % self.msg
 
 class DaemonRequestDef(object):
-    def __init__(self, command, usage, handle=None):
+    def __init__(self, command, usage, handle=None, inner=False):
         self.command = command
         self.usage = usage
         self.long_usage = usage
         self.handle = "handle_%s" % (handle or command)
+        self.inner = inner
 
-class GenericClient(object):
+
+class GenericClient(Cmd, object):
+    intro = "Daemon Client %s" % __daemon_client_version__ + "\n" + \
+        "Type 'help', 'server' for more information."
+    prompt = ">>> "
 
     def __init__(self, **kwargs):
-        self.port = kwargs.get('port', 5000)
+        super(GenericClient, self).__init__()
+        self.port = kwargs.get('port', 4202)
         self.host = kwargs.get('host', '')
-        self.print_fn = kwargs.get('output', 'console')
+        self.stdout = ColoredStreamHandler(self.stdout).stream
 
     def prints(self, s):
-        if self.print_fn == 'console':
-            log.info(s)
-        else:
-            self.print_fn(s)
+        self.stdout.write("%s\n" % s)
 
-    def send(self, command, msg, data=None):
+    def start(self):
+        return self.cmdloop()
+
+    def default(self, line):
+        if line in ("exit", "quit", "bye", "EOF"):
+            print "Bye ..."
+            return True
+
+        cmd, arg, line = self.parseline(line)
+        msg = None
+        data = None
+        args = arg.split(" ")
+        if len(args)>0:
+            msg = args[0]
+            if len(args)>1:
+                data = " ".join(args[1:])
+        self.send_to_server(cmd, msg, data)
+        return False
+
+    def send_to_server(self, command, msg, data=None):
         from socket import error
 
         req = DaemonRequest(command, msg, data)
@@ -89,8 +121,9 @@ class GenericClient(object):
                 self.prints("{{white|red:[ERROR]}}: cannot connect to the server at %s:%s"% (self.host, self.port))
             else:
                 self.prints(e)
-        if command == "help":
-            self.print_client_help()
+
+    def emptyline(self):
+        return False
 
     def print_client_help(self):
         self.prints("\nsupported commands of client:")
@@ -98,57 +131,27 @@ class GenericClient(object):
         self.prints(" %-10s   %s" % ("port", "change to connect to another port"))
         self.prints(" %-10s   %s" % ("exit", "exit this client"))
 
-    def start(self):
-        self.prints("Daemon Client %s" % __daemon_client_version__)
-        self.prints("Type 'help', 'server' for more information.")
-
-        get_next_command = True
-        while get_next_command:
-            inputs = raw_input(">>> ")
-            if inputs != '':
-                inputs = inputs.split(" ")
-                cmd = inputs[0]
-                if cmd == "exit":
-                    get_next_command = False
-                    continue
-
-                if cmd == "port":
-                    self.handle_port(cmd, inputs)
-                    continue
-
-                if cmd == "host":
-                    self.handle_host(cmd, inputs)
-                    continue
-
-                msg = None
-                data = None
-                if len(inputs)>1:
-                    msg = inputs[1]
-                    if len(inputs)>2:
-                        data = inputs[2]
-                self.send(cmd, msg, data)
-
-            #self.send(inputs[])
-
-    def handle_host(self, cmd, inputs):
-        if len(inputs) < 2:
+    def do_host(self, args):
+        if not args:
             self.prints("current server is (%s, %s)," % (self.host, self.port))
             self.prints(" use 'host [HOSTNAME]' to update hostname.")
         else:
             old = self.host
-            self.host = inputs[1]
+            self.host = args
             self.prints("host changed from %s to %s" % (old, self.host))
 
-
-    def handle_port(self, cmd, inputs):
-        if len(inputs) < 2:
+    def do_port(self, args):
+        if not args:
             self.prints("current server is (%s, %s)," % (self.host, self.port))
             self.prints(" use 'port [PORT]' to change port.")
         else:
             oldport = self.port
-            self.port = inputs[1]
+            self.port = args
             self.prints("port changed from %s to %s" % (oldport, self.port))
 
+    def do_help(self, args):
+        self.send_to_server("help", None)
+        self.print_client_help()      
 
 class GenericDaemon(object):
 
@@ -160,12 +163,16 @@ class GenericDaemon(object):
 
         self.supported_requests = {}
 
-        self.register_request('server', usage="get server information")
-        self.register_request('help', usage="get supportted command list")
-        self.register_request('shutdown', usage="shut server down")
-        self.register_request('echo', usage="echo from server")
+        self.register_request('server', usage="get server information.")
+        self.register_request('help', usage="get supportted command list.")
+        self.register_request('shutdown', usage="shut server down.")
+        self.register_request('echo', usage="echo from server.")
+
+        self.register_request('debug', inner=True)
 
         self.strftime = "%Y-%m-%d %H:%M:%S"
+
+        self.debug = False
 
         self.stopMainLoop = False
 
@@ -190,10 +197,10 @@ class GenericDaemon(object):
     def get_address(self):
         return (self.host, self.port)
 
-    def register_request(self, cmd, usage=""):
+    def register_request(self, cmd, usage="", inner=False):
         msg = None
         if isinstance(cmd, str):
-            msg = DaemonRequestDef(cmd, usage)
+            msg = DaemonRequestDef(cmd, usage, inner=inner)
         elif isinstance(cmd, DaemonRequestDef):
             msg = cmd
         if msg:
@@ -205,7 +212,7 @@ class GenericDaemon(object):
     def get_request_handle(self, msg):
         return self.supported_requests[msg.command].handle
 
-    def mainLoop(self):
+    def mainLoop(self, cmd=None):
         pass
 
     def startMainLoop(self):
@@ -216,8 +223,7 @@ class GenericDaemon(object):
             if self.stopMainLoop:
                 self.prints(">>> MainLoop is stoped at %s" % self.gettimestamp())
                 break
-            self.mainLoop()
-
+            self.mainLoop(cmd="shutdown")
 
     def startOperationServer(self):
         from gevent.server import StreamServer
@@ -234,17 +240,22 @@ class GenericDaemon(object):
             req = DaemonMsg.load_from_socket(socket)
             self.prints(">>> %s" % req.command)
 
+            if self.debug:
+                self.prints(">>> [DEBUG] cmd:%s" % req.command)
+                self.prints(">>> [DEBUG] msg:%s" % req.msg)
+                self.prints(">>> [DEBUG] data:%s" % req.data)
+
             if req.data:
                 if isinstance(req.data, str):
                     self.prints(">>  - %s" % req.data)
 
             if not self.is_supported_request(req):
-                send_error_response(socket, "Unspported command: %s"% req.command)
+                send_error_response(socket, "Unsupported command: %s"% req.command)
                 return False
 
             handle_name = self.get_request_handle(req)
             if not hasattr(self, handle_name):
-                send_error_response(socket, "Unspported command: %s"% req.command)
+                send_error_response(socket, "Unsupported command: %s"% req.command)
                 return False
 
             response = getattr(self, handle_name)(req)
@@ -286,8 +297,10 @@ class GenericDaemon(object):
     def handle_help(self, req):
         msg = []
         msg.append("supported commands of server:")
-        for cmd in self.supported_requests:
-            msg.append(" %-10s   %s" % (cmd, self.supported_requests[cmd].usage))
+        for cmd in sorted(self.supported_requests.keys()):
+            req_def = self.supported_requests[cmd]
+            if not req_def.inner:
+                msg.append(" %-10s   %s" % (cmd, req_def.usage))
 
         msg = "\n".join(msg)
         return DaemonResponse(True, msg)
@@ -298,6 +311,19 @@ class GenericDaemon(object):
     def handle_shutdown(self, req):
         self.stopMainLoop = True
         return DaemonResponse(True, "The server is shutting down.")
+
+    def handle_debug(self, req):
+        if req.msg == "on":
+            self.debug = True
+            debug_mode = "ON"
+        else:
+            self.debug = False
+            debug_mode = "OFF"
+
+        return DaemonResponse(True, "Debug mode is %s" % debug_mode)
+
+    def create_response(self, success, msg, data=None):
+        return DaemonResponse(success, msg, data=data)
 
 
 

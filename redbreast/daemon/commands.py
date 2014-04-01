@@ -52,17 +52,28 @@ class DaemonCommand(Command):
     help = 'Start a daemon server'
     args = '[-p port] daemonName'
     option_list = (
-        make_option('-p', dest='port', type='int', default=8000,
+        make_option('-p', dest='port', type='int',
             help='Port number.'),
+        make_option('-c', dest='config', type='str', help='Configuration file')
     )
     has_options = True
     
     def handle(self, options, global_options, *args):
+        import os
+        from uliweb.utils.pyini import Ini
         if not args:
             print "Error: The daemon name is required."
             return 
         else:
             daemon_name = args[0]
+
+        fileconfig = None
+        if options.config:
+            if os.path.exists(os.path.abspath(os.path.normpath(options.config))) and os.path.isfile(options.config):
+                fileconfig = Ini(options.config)
+            else:
+                print "Error: cannot read configuration file:%s" % options.config
+                return
             
         self.get_application(global_options)
         apps_list = self.get_apps(global_options)
@@ -76,7 +87,7 @@ class DaemonCommand(Command):
                 if global_options.verbose:
                     print "Importing... %s" % module
                 if hasattr(package, 'start'):
-                    getattr(package, 'start')(args, options, global_options)
+                    getattr(package, 'start')(args, options, global_options, fileconfig)
                 else:
                     raise Exception("Can't find start entry in module %s" % module)
                 exe_flag = True

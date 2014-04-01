@@ -61,7 +61,7 @@ class WFManager(object):
                         cls = CommonUtils.get_spec(klass)
                         task_spec = cls(task['name'], desc=task.get('desc', task['name']))
                         task_spec.update_fields(task)
-                        task_spec.update_codes(task['codes'])
+                        task_spec.update_codes(task.get('codes', {}))
                         self.add_task_spec(task_spec)
                         task_spec = self.get_task_spec(task_spec_name)
 
@@ -73,7 +73,7 @@ class WFManager(object):
                 workflow_spec.refresh_flow_type()
 
                 workflow_spec.update_fields(proc)
-                workflow_spec.update_codes(proc['codes'])
+                workflow_spec.update_codes(proc.get('codes', {}))
 
                 self.add_workflow_spec(workflow_spec)
 
