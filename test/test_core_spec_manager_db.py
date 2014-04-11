@@ -6,8 +6,8 @@ import os
 class TestCoreWFManagerDB(object):
     
     def reset_database(self):
-        import os
-        os.remove('database.db')
+        import shutil
+        shutil.rmtree('database.db', ignore_errors=True)
         manage.call('uliweb syncdb')
     
     def setup(self):

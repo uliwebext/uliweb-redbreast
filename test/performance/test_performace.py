@@ -14,10 +14,11 @@ class TestPerformace(object):
         manage.call('uliweb syncspec')
 
     def setup(self):
-
         import os
+        self._path = os.getcwd()
+
         locate_dir = os.path.dirname(__file__)
-        os.chdir(locate_dir)
+        os.chdir(os.path.abspath(locate_dir))
         os.chdir('test_project')
         self.create_database()
 
@@ -25,7 +26,8 @@ class TestPerformace(object):
         app = make_simple_application(apps_dir='./apps')        
         
     def teardown(self):
-        self.remove_database()
+        #self.remove_database()
+        os.chdir(self._path)
 
     def deliver(self, workflow, uuid, message, next_tasks=None):
         async = False
@@ -82,7 +84,8 @@ class TestPerformace(object):
 
         print "Done"
 
-if __name__ == '__main__':
+def main():
+
     from uliweb.orm import begin_sql_monitor, close_sql_monitor
     test = TestPerformace()
     
@@ -91,4 +94,9 @@ if __name__ == '__main__':
     test.test()
     monitor.print_()
     close_sql_monitor(monitor)
-    #test.teardown()
+    test.teardown()        
+
+if __name__ == '__main__':
+    main()
+    #import timeit
+    #print(timeit.timeit("main()", setup="from __main__ import main", number=10))
